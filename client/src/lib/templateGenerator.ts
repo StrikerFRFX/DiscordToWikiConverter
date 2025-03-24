@@ -48,10 +48,10 @@ function formatRequiredTiles(tiles: string, templateType: 'formable' | 'mission'
   // Format for template
   const formattedEntries = Object.entries(tilesByCountry).map(([country, countryTiles]) => {
     if (templateType === 'formable') {
-      return `{{Flag|Name=${country}}}<br><small>(TBD ${singularOrPlural(countryTiles.length, 'city', 'cities')})</small>`;
+      return `{{Flag|Name=${country}}}<br><small>(TBD ${countryTiles.length > 1 ? 'cities' : 'city'})</small>`;
     } else {
       // For missions, use the format from ConsideredMissionFull.txt
-      return `{{Flag|Name=${country}}}<br><small>(TBD ${singularOrPlural(countryTiles.length, 'city', 'cities')} required)</small>`;
+      return `{{Flag|Name=${country}}}<br><small>(TBD ${countryTiles.length > 1 ? 'cities' : 'city'} required)</small>`;
     }
   });
   
@@ -63,7 +63,7 @@ function formatRequiredTiles(tiles: string, templateType: 'formable' | 'mission'
     formattedTiles: formattedEntries.join('\n'),
     tilesForTagline: firstCountry ? { 
       country: firstCountry, 
-      cityText: singularOrPlural(tilesCount, 'city', 'cities')
+      cityText: tilesCount > 1 ? 'cities' : 'city'
     } : null
   };
 }
@@ -185,15 +185,8 @@ export function generateWikiTemplate(templateData: TemplateData, templateType: '
     templateFields['demonym'] = templateData.demonym;
   }
   
-  // Update continent if specified or detected
-  if (templateData.continent && templateData.continent !== 'auto') {
-    templateFields['continent'] = `{{${templateData.continent}}}`;
-  } else if (templateData.requiredCountries) {
-    const detectedContinent = detectContinent(templateData.requiredCountries);
-    if (detectedContinent) {
-      templateFields['continent'] = `{{${detectedContinent}}}`;
-    }
-  }
+  // Always keep continent as {{Inferred}} in the template
+  templateFields['continent'] = '{{Inferred}}';
   
   // Build template string
   const templateName = templateType === 'formable' ? 'ConsideredFormable' : 'ConsideredMission';

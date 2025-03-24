@@ -17,16 +17,21 @@ function extractDiscordMetadata(content: string): {
   discordId: string | null;
   messageTimestamp: string | null;
 } {
-  const metadata = {
+  const metadata: {
+    suggestedBy: string | null;
+    discordId: string | null;
+    messageTimestamp: string | null;
+  } = {
     suggestedBy: null,
     discordId: null,
     messageTimestamp: null
   };
 
   // Try to extract who suggested it (common format: "Considered by Username")
-  const suggestedByMatch = content.match(/Considered by ([^#]+)(#\d+)?/i) || 
+  const suggestedByMatch = content.match(/Considered by ([^#\n]+)(#\d+)?/i) || 
                            content.match(/suggested_by\s*=\s*["']([^"']+)["']/i) ||
-                           content.match(/By\s+([a-zA-Z0-9_]+)/i);
+                           content.match(/By\s+([a-zA-Z0-9_]+)/i) ||
+                           content.match(/Suggested by ([^#\n]+)/i);
   if (suggestedByMatch) {
     metadata.suggestedBy = suggestedByMatch[1].trim();
   }
@@ -97,7 +102,7 @@ function parseArray(content: string, key: string): string[] {
  */
 function parseNestedObject(content: string, key: string): Record<string, string> | null {
   // Match the entire object block between braces
-  const objectRegex = new RegExp(`${key}\\s*=\\s*{([^}]+)}`, 'is');
+  const objectRegex = new RegExp(`${key}\\s*=\\s*{([^}]+)}`, 'i');
   const objectMatch = content.match(objectRegex);
   
   if (!objectMatch) return null;
@@ -133,7 +138,7 @@ function parseCustomAttributes(content: string): Record<string, string> {
   const result: Record<string, string> = {};
   
   // Match the CustomAttributes block
-  const attributeBlockRegex = /CustomAttributes\s*=\s*{([^}]+)}/is;
+  const attributeBlockRegex = /CustomAttributes\s*=\s*{([^}]+)}/i;
   const attributeBlock = content.match(attributeBlockRegex);
   
   if (!attributeBlock) return result;
