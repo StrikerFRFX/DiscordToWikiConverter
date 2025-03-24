@@ -22,7 +22,7 @@ function formatCountryList(countries: string): string {
 /**
  * Format required tiles with proper notation
  */
-function formatRequiredTiles(tiles: string): { 
+function formatRequiredTiles(tiles: string, templateType: 'formable' | 'mission'): { 
   formattedTiles: string; 
   tilesForTagline: { country: string, cityText: string } | null;
 } {
@@ -47,7 +47,12 @@ function formatRequiredTiles(tiles: string): {
   
   // Format for template
   const formattedEntries = Object.entries(tilesByCountry).map(([country, countryTiles]) => {
-    return `{{Flag|Name=${country}}}<br><small>(TBD ${singularOrPlural(countryTiles.length, 'city', 'cities')} required)</small>`;
+    if (templateType === 'formable') {
+      return `{{Flag|Name=${country}}}<br><small>(TBD ${singularOrPlural(countryTiles.length, 'city', 'cities')})</small>`;
+    } else {
+      // For missions, use the format from ConsideredMissionFull.txt
+      return `{{Flag|Name=${country}}}<br><small>(TBD ${singularOrPlural(countryTiles.length, 'city', 'cities')} required)</small>`;
+    }
   });
   
   // Get first country with tiles for tagline
@@ -119,12 +124,12 @@ function generateTagline(
   let categoryType = '';
   if (templateType === 'formable') {
     categoryType = formType === 'releasable' 
-      ? 'Considered Releasable Formables'
-      : 'Considered Formables';
+      ? 'Considered Formables'
+      : 'Considered Formable';
   } else {
     categoryType = formType === 'releasable'
-      ? 'Considered Releasable Missions'
-      : 'Considered Missions';
+      ? 'Considered Missions'
+      : 'Considered Mission';
   }
   
   const typeText = templateType === 'formable' 
@@ -142,8 +147,8 @@ function generateTagline(
  * Generate the full wiki template
  */
 export function generateWikiTemplate(templateData: TemplateData, templateType: 'formable' | 'mission'): string {
-  // Handle tiles formatting
-  const { formattedTiles, tilesForTagline } = formatRequiredTiles(templateData.requiredTiles);
+  // Handle tiles formatting - pass templateType parameter
+  const { formattedTiles, tilesForTagline } = formatRequiredTiles(templateData.requiredTiles, templateType);
   
   // Convert fields to proper format
   const templateFields: Record<string, string> = {
