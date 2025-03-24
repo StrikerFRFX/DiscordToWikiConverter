@@ -1,0 +1,23 @@
+{
+    MissionName = "MissionName",
+    CountriesCanForm = {"Country"},
+    RequiredCountries = {“Country1”, “Country2”, “Country3”, // etc etc},
+    RequiredTiles = {"CountryName1.001", "CountryName1.002", "CountryName1.003", "CountryName1.004", "CountryName1.005", "CountryName2.001", // etc etc only important information is the country name and if it is here, will be (TBD city/cities required) },
+    ExclusiveFormables = {"Formable Name"},
+
+    FormableButton = {
+        ButtonName = "Button Name",
+        ButtonDescription = "Button Description”
+    },
+
+    CustomAlert = {
+        Title = "Alert Title”
+        Desc = "Alert Description”
+        Button = "Alert Button”
+    },
+  CustomAttributes = {
+["StabilityGain"] = Number
+["StabilityRequirement"] = Number
+["PoliticalPowerGain"] = Number
+    },
+},
