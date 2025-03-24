@@ -24,7 +24,9 @@ function extractDiscordMetadata(content: string): {
   };
 
   // Try to extract who suggested it (common format: "Considered by Username")
-  const suggestedByMatch = content.match(/Considered by ([^#]+)(#\d+)?/i);
+  const suggestedByMatch = content.match(/Considered by ([^#]+)(#\d+)?/i) || 
+                           content.match(/suggested_by\s*=\s*["']([^"']+)["']/i) ||
+                           content.match(/By\s+([a-zA-Z0-9_]+)/i);
   if (suggestedByMatch) {
     metadata.suggestedBy = suggestedByMatch[1].trim();
   }
@@ -58,7 +60,18 @@ function parseKeyValuePair(content: string, key: string): string | null {
   // Format: key = value (without quotes)
   const unquotedRegex = new RegExp(`${key}\\s*=\\s*([^,}\\n]+)`, 'i');
   const unquotedMatch = content.match(unquotedRegex);
-  if (unquotedMatch) return unquotedMatch[1].trim();
+  if (unquotedMatch) {
+    const value = unquotedMatch[1].trim();
+    // If it ends with a comma or just a number, clean it up
+    return value.replace(/,$/, '').trim();
+  }
+  
+  // CustomAttributes format: ["Key"] = value
+  const attributeRegex = new RegExp(`\\["${key}"\\]\\s*=\\s*([^,}\\n]+)`, 'i');
+  const attributeMatch = content.match(attributeRegex);
+  if (attributeMatch) {
+    return attributeMatch[1].trim();
+  }
   
   return null;
 }
@@ -76,13 +89,14 @@ function parseArray(content: string, key: string): string[] {
   return arrayMatch[1]
     .split(',')
     .map(item => extractCountryName(item))
-    .filter(item => item.length > 0);
+    .filter(item => item.length > 0 && !item.includes('//'));
 }
 
 /**
  * Parse a nested object from the Discord format content
  */
 function parseNestedObject(content: string, key: string): Record<string, string> | null {
+  // Match the entire object block between braces
   const objectRegex = new RegExp(`${key}\\s*=\\s*{([^}]+)}`, 'is');
   const objectMatch = content.match(objectRegex);
   
@@ -91,18 +105,54 @@ function parseNestedObject(content: string, key: string): Record<string, string>
   const objectContent = objectMatch[1];
   const result: Record<string, string> = {};
   
-  // Extract nested key-value pairs
-  const nameMatch = objectContent.match(/Name\s*=\s*["']([^"']+)["']/i);
+  // Extract nested key-value pairs using more flexible patterns
+  
+  // Try to match ButtonName/Name pattern
+  const nameMatch = objectContent.match(/(?:ButtonName|Name)\s*=\s*["']([^"']+)["']/i);
   if (nameMatch) result.Name = nameMatch[1].trim();
   
-  const descriptionMatch = objectContent.match(/Description\s*=\s*["']([^"']+)["']/i);
-  if (descriptionMatch) result.Description = descriptionMatch[1].trim();
+  // Try to match ButtonDescription/Description/Desc pattern
+  const descMatch = objectContent.match(/(?:ButtonDescription|Description|Desc)\s*=\s*["']([^"']+)["']/i);
+  if (descMatch) result.Description = descMatch[1].trim();
   
+  // Try to match Title pattern
   const titleMatch = objectContent.match(/Title\s*=\s*["']([^"']+)["']/i);
   if (titleMatch) result.Title = titleMatch[1].trim();
   
-  const buttonTextMatch = objectContent.match(/ButtonText\s*=\s*["']([^"']+)["']/i);
-  if (buttonTextMatch) result.ButtonText = buttonTextMatch[1].trim();
+  // Try to match Button pattern
+  const buttonMatch = objectContent.match(/Button\s*=\s*["']([^"']+)["']/i);
+  if (buttonMatch) result.Button = buttonMatch[1].trim();
+  
+  return result;
+}
+
+/**
+ * Parse CustomAttributes block for specific values
+ */
+function parseCustomAttributes(content: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  
+  // Match the CustomAttributes block
+  const attributeBlockRegex = /CustomAttributes\s*=\s*{([^}]+)}/is;
+  const attributeBlock = content.match(attributeBlockRegex);
+  
+  if (!attributeBlock) return result;
+  
+  const attributesContent = attributeBlock[1];
+  
+  // Extract stability gain
+  const stabilityMatch = attributesContent.match(/\["Stability_Gain"\]\s*=\s*([^,\n]+)/i) || 
+                         attributesContent.match(/\["StabilityGain"\]\s*=\s*([^,\n]+)/i);
+  if (stabilityMatch) result.stabilityGain = stabilityMatch[1].trim();
+  
+  // Extract PP gain (for missions)
+  const ppMatch = attributesContent.match(/\["PoliticalPowerGain"\]\s*=\s*([^,\n]+)/i) ||
+                  attributesContent.match(/\["PP_Gain"\]\s*=\s*([^,\n]+)/i);
+  if (ppMatch) result.ppGain = ppMatch[1].trim();
+  
+  // Extract stability requirement (for missions)
+  const stabReqMatch = attributesContent.match(/\["StabilityRequirement"\]\s*=\s*([^,\n]+)/i);
+  if (stabReqMatch) result.stabilityRequirement = stabReqMatch[1].trim();
   
   return result;
 }
@@ -113,16 +163,17 @@ function parseNestedObject(content: string, key: string): Record<string, string>
 export function parseDiscordMessage(content: string, templateType: 'formable' | 'mission'): ParseResult {
   try {
     const metadata = extractDiscordMetadata(content);
+    const customAttributes = parseCustomAttributes(content);
     
     let templateData: TemplateData = {
       name: '',
       startNation: '',
       requiredCountries: '',
       requiredTiles: '',
-      continent: '',
-      stabilityGain: '',
-      ppGain: '',
-      requiredStability: '',
+      continent: 'auto',
+      stabilityGain: customAttributes.stabilityGain || '',
+      ppGain: customAttributes.ppGain || '',
+      requiredStability: customAttributes.stabilityRequirement || '',
       cityCount: '',
       squareCount: '',
       population: '',
@@ -151,44 +202,38 @@ export function parseDiscordMessage(content: string, templateType: 'formable' | 
       const requiredTiles = parseArray(content, 'RequiredTiles');
       templateData.requiredTiles = requiredTiles.join(', ');
       
-      const stabilityGain = parseKeyValuePair(content, 'StabilityGain');
-      templateData.stabilityGain = stabilityGain || '';
+      // Try to extract demonym if present
+      const demonym = parseKeyValuePair(content, 'Demonym');
+      if (demonym) templateData.demonym = demonym;
       
+      // Extract FormableButton data
       const formableButton = parseNestedObject(content, 'FormableButton');
       if (formableButton) {
         templateData.decisionName = formableButton.Name || '';
         templateData.decisionDescription = formableButton.Description || '';
       }
       
+      // Extract CustomAlert data
       const customAlert = parseNestedObject(content, 'CustomAlert');
       if (customAlert) {
         templateData.alertTitle = customAlert.Title || '';
         templateData.alertDescription = customAlert.Description || '';
-        templateData.alertButton = customAlert.ButtonText || '';
+        templateData.alertButton = customAlert.Button || '';
       }
       
-      // Check for special attributes
-      const demonym = parseKeyValuePair(content, 'Demonym');
-      if (demonym) templateData.demonym = demonym;
+      // Check other possible formats
+      if (!templateData.stabilityGain) {
+        const stabGain = parseKeyValuePair(content, 'Stability_Gain');
+        if (stabGain) templateData.stabilityGain = stabGain;
+      }
       
-      const cityCount = parseKeyValuePair(content, 'CityCount');
-      if (cityCount) templateData.cityCount = cityCount;
-      
-      const squareCount = parseKeyValuePair(content, 'SquareCount');
-      if (squareCount) templateData.squareCount = squareCount;
-      
-      const population = parseKeyValuePair(content, 'Population');
-      if (population) templateData.population = population;
-      
-      const manpower = parseKeyValuePair(content, 'Manpower');
-      if (manpower) templateData.manpower = manpower;
-    } else {
+    } else { // Mission template
       // Extract mission-specific fields
       const missionName = parseKeyValuePair(content, 'MissionName');
       templateData.name = missionName || '';
       
-      const startingNation = parseKeyValuePair(content, 'StartingNation');
-      templateData.startNation = startingNation || '';
+      const countriesCanForm = parseArray(content, 'CountriesCanForm');
+      templateData.startNation = countriesCanForm.join(', ');
       
       const requiredCountries = parseArray(content, 'RequiredCountries');
       templateData.requiredCountries = requiredCountries.join(', ');
@@ -196,29 +241,25 @@ export function parseDiscordMessage(content: string, templateType: 'formable' | 
       const requiredTiles = parseArray(content, 'RequiredTiles');
       templateData.requiredTiles = requiredTiles.join(', ');
       
-      const stabilityGain = parseKeyValuePair(content, 'StabilityGain');
-      templateData.stabilityGain = stabilityGain || '';
+      // Extract FormableButton data
+      const formableButton = parseNestedObject(content, 'FormableButton');
+      if (formableButton) {
+        templateData.decisionName = formableButton.Name || '';
+        templateData.decisionDescription = formableButton.Description || '';
+      }
       
-      const ppGain = parseKeyValuePair(content, 'PPGain');
-      templateData.ppGain = ppGain || '';
-      
-      const requiredStability = parseKeyValuePair(content, 'RequiredStability');
-      templateData.requiredStability = requiredStability || '';
-      
-      const decisionName = parseKeyValuePair(content, 'DecisionName');
-      templateData.decisionName = decisionName || '';
-      
-      const decisionDescription = parseKeyValuePair(content, 'DecisionDescription');
-      templateData.decisionDescription = decisionDescription || '';
-      
-      const alertTitle = parseKeyValuePair(content, 'AlertTitle');
-      templateData.alertTitle = alertTitle || '';
-      
-      const alertDescription = parseKeyValuePair(content, 'AlertDescription');
-      templateData.alertDescription = alertDescription || '';
-      
-      const alertButton = parseKeyValuePair(content, 'AlertButton');
-      templateData.alertButton = alertButton || '';
+      // Extract CustomAlert data
+      const customAlert = parseNestedObject(content, 'CustomAlert');
+      if (customAlert) {
+        templateData.alertTitle = customAlert.Title || '';
+        templateData.alertDescription = customAlert.Description || '';
+        templateData.alertButton = customAlert.Button || '';
+      }
+    }
+    
+    // Parse for releasable type
+    if (content.toLowerCase().includes('releasable')) {
+      templateData.formType = 'releasable';
     }
     
     return {
