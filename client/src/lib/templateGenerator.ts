@@ -298,7 +298,9 @@ export async function generateWikiTemplate(
     population: escapeWikiString(templateData.population || ""),
     manpower: escapeWikiString(templateData.manpower || ""),
     decision_name: escapeWikiString(templateData.decisionName || ""),
-    decision_description: escapeWikiString(templateData.decisionDescription || ""),
+    decision_description: escapeWikiString(
+      templateData.decisionDescription || ""
+    ),
     alert_title: escapeWikiString(templateData.alertTitle || ""),
     alert_description: escapeWikiString(templateData.alertDescription || ""),
     alert_button: escapeWikiString(templateData.alertButton || ""),
@@ -312,7 +314,9 @@ export async function generateWikiTemplate(
   // Add mission-specific fields if needed
   if (templateType === "mission") {
     templateFields["pp_gain"] = escapeWikiString(templateData.ppGain || "");
-    templateFields["required_stability"] = escapeWikiString(templateData.requiredStability || "");
+    templateFields["required_stability"] = escapeWikiString(
+      templateData.requiredStability || ""
+    );
   }
 
   // Add demonym if present
