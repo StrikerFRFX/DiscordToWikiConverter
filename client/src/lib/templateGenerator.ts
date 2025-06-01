@@ -164,8 +164,12 @@ async function generateTagline(
   // Add tiles info if present using varied language
   let tilesText = "";
   if (tilesInfo) {
-    const tilePhrase = generateTilePhrase();
-    tilesText = ` and ${tilePhrase} {{Flag|Name=${tilesInfo.country}}} (TBD ${tilesInfo.cityText})`;
+    // Only add tile countries that are NOT already in requiredCountriesArray
+    const tileCountry = tilesInfo.country;
+    if (!requiredCountriesArray.includes(tileCountry)) {
+      const tilePhrase = generateTilePhrase();
+      tilesText = ` and ${tilePhrase} {{Flag|Name=${tileCountry}}} (TBD ${tilesInfo.cityText})`;
+    }
   }
 
   // Build the category reference based on template type and form type
@@ -202,13 +206,35 @@ async function generateTagline(
   let requirementPhrase = generateRequirementPhrase();
 
   // For missions, use mission-specific phrasing
+  // Determine if this is a "many nations" formable
+  let forNationsText = "";
+  if (templateType === "formable") {
+    // Use startNation as the source for countries that can form
+    const canFormArray = (templateData.startNation || "")
+      .split(",")
+      .map((c: string) => c.trim())
+      .filter((c: string) => c);
+    if (canFormArray.length > 3) {
+      forNationsText = "for many nations";
+    } else if (canFormArray.length === 1) {
+      forNationsText = `for {{Flag|Name=${canFormArray[0]}}}`;
+    } else if (canFormArray.length > 1) {
+      forNationsText = `for ${canFormArray
+        .map((c: string) => `{{Flag|Name=${c}}}`)
+        .join(", ")}`;
+    }
+  }
+
   let tagline = "";
   if (templateType === "mission") {
-    // Use mission opening + action phrase for correct grammar
     const actionPhrase = generateMissionActionPhrase();
     tagline = `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] for {{Flag|Name=${startNationFormatted}}}. This mission ${generateMissionOpeningPhrase()} ${actionPhrase} ${requiredCountriesText}${tilesText}, and is ${locationPhrase} ${continentText}.`;
   } else {
-    tagline = `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] for {{Flag|Name=${startNationFormatted}}}. It is ${locationPhrase} ${continentText} and ${requirementPhrase} ${requiredCountriesText}${tilesText}.`;
+    tagline = `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] ${
+      forNationsText
+        ? forNationsText
+        : `for {{Flag|Name=${startNationFormatted}}}`
+    }. It is ${locationPhrase} ${continentText} and ${requirementPhrase} ${requiredCountriesText}${tilesText}.`;
   }
   consola.info({ message: "generateTagline result", tagline });
   return tagline;
