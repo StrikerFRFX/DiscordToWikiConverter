@@ -47,8 +47,15 @@ const server = app.listen(port, "0.0.0.0", () => {
   // Only import and use Vite in development, after server is started
   if (app.get("env") === "development") {
     (async () => {
-      const { setupVite } = await import("./vite.js");
-      await setupVite(app, server);
+      // Only import vite in dev, and only if vite.js exists
+      try {
+        const { setupVite } = await import("./vite.js");
+        await setupVite(app, server);
+      } catch (e) {
+        consola.warn(
+          "Vite dev server not started: vite.js not found or not needed in production."
+        );
+      }
     })();
   }
 });
