@@ -131,25 +131,21 @@ function parseNestedObject(
 
   // Extract nested key-value pairs using more flexible patterns
 
-  // Try to match ButtonName/Name pattern
-  const nameMatch = objectContent.match(
-    /(?:ButtonName|Name)\s*=\s*["']([^"']+)["']/i
-  );
-  if (nameMatch) result.Name = nameMatch[1].trim();
+  // Try to match ButtonName/Name pattern (support embedded quotes)
+  const nameMatch = objectContent.match(/(?:ButtonName|Name)\s*=\s*(["'])(.*?)\1/i);
+  if (nameMatch) result.Name = nameMatch[2].trim();
 
-  // Try to match ButtonDescription/Description/Desc pattern
-  const descMatch = objectContent.match(
-    /(?:ButtonDescription|Description|Desc)\s*=\s*["']([^"']+)["']/i
-  );
-  if (descMatch) result.Description = descMatch[1].trim();
+  // Try to match ButtonDescription/Description/Desc pattern (support embedded quotes)
+  const descMatch = objectContent.match(/(?:ButtonDescription|Description|Desc)\s*=\s*(["'])(.*?)\1/i);
+  if (descMatch) result.Description = descMatch[2].trim();
 
-  // Try to match Title pattern
-  const titleMatch = objectContent.match(/Title\s*=\s*["']([^"']+)["']/i);
-  if (titleMatch) result.Title = titleMatch[1].trim();
+  // Try to match Title pattern (support embedded quotes)
+  const titleMatch = objectContent.match(/Title\s*=\s*(["'])(.*?)\1/i);
+  if (titleMatch) result.Title = titleMatch[2].trim();
 
-  // Try to match Button pattern
-  const buttonMatch = objectContent.match(/Button\s*=\s*["']([^"']+)["']/i);
-  if (buttonMatch) result.Button = buttonMatch[1].trim();
+  // Try to match Button pattern (support embedded quotes)
+  const buttonMatch = objectContent.match(/Button\s*=\s*(["'])(.*?)\1/i);
+  if (buttonMatch) result.Button = buttonMatch[2].trim();
 
   return result;
 }
