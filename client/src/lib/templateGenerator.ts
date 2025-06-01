@@ -164,7 +164,7 @@ async function generateTagline(
   // Add tiles info if present using varied language
   let tilesText = "";
   if (tilesInfo && templateData.requiredTiles) {
-    // Get all tile countries from requiredTiles
+    // Get all tile countries from requiredTiles, excluding those already in requiredCountriesArray
     const tileCountries = Array.from(
       new Set(
         templateData.requiredTiles
@@ -174,11 +174,22 @@ async function generateTagline(
       )
     );
     if (tileCountries.length > 0) {
-      const tilePhrases = tileCountries.map((country) => {
-        const tilePhrase = generateTilePhrase();
-        return `${tilePhrase} {{Flag|Name=${country}}}`;
-      });
-      tilesText = ` and ${tilePhrases.join(", ")} (TBD cities)`;
+      const tilePhrase = generateTilePhrase();
+      let tileList = "";
+      if (tileCountries.length === 1) {
+        tileList = `{{Flag|Name=${tileCountries[0]}}}`;
+      } else if (tileCountries.length === 2) {
+        tileList = `{{Flag|Name=${tileCountries[0]}}} and {{Flag|Name=${tileCountries[1]}}}`;
+      } else {
+        tileList = tileCountries
+          .slice(0, -1)
+          .map((c: string) => `{{Flag|Name=${c}}}`)
+          .join(", ");
+        tileList += `, and {{Flag|Name=${
+          tileCountries[tileCountries.length - 1]
+        }}}`;
+      }
+      tilesText = ` and ${tilePhrase} ${tileList} (TBD cities)`;
     }
   }
 
