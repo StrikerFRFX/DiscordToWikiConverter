@@ -40,40 +40,6 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     }
   };
 
-  const handleExport = () => {
-    try {
-      // Create a blob from the text
-      const blob = new Blob([generatedCode], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-
-      // Create a temporary anchor element to download the file
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = templateData?.name
-        ? `${templateData.name.replace(/\s+/g, "_")}_wiki_template.txt`
-        : `wiki_template.txt`;
-
-      document.body.appendChild(a);
-      a.click();
-
-      // Clean up
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Exported!",
-        description: "Template exported to file",
-      });
-    } catch (error) {
-      console.error("Export error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to export template",
-        variant: "destructive",
-      });
-    }
-  };
-
   // Fetch Discord user if templateData.suggestedBy is a Discord user ID
   const discordId =
     templateData?.suggestedBy && /^\d{17,}$/.test(templateData.suggestedBy)
@@ -166,13 +132,13 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         {generatedCode && (
           <div>
             <Button
-              onClick={handleExport}
+              onClick={handleCopy}
               className="bg-primary hover:bg-purple-900 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-200"
             >
-              <i className="fas fa-download mr-2"></i> Export
+              <i className="far fa-copy mr-2"></i> Copy to Clipboard
             </Button>
             <span className="text-sm text-gray-500 ml-2">
-              For direct wiki upload
+              Copy the generated template to your clipboard
             </span>
           </div>
         )}
