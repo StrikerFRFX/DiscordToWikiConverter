@@ -4,6 +4,7 @@ import {
   generateLocationPhrase,
   generateRequirementPhrase,
   generateTilePhrase,
+  getMissionTagline,
 } from "./taglineGenerator";
 import { detectContinent } from "./continentMapper";
 import consola from "consola";
@@ -119,6 +120,11 @@ async function generateTagline(
     templateData;
 
   const formableName = name || "Unnamed Template";
+
+  if (templateType === "mission") {
+    // Use a random mission tagline
+    return getMissionTagline();
+  }
 
   // Handle continent display - try to detect it if set to auto
   let continentText = "{{Inferred}}";

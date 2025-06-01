@@ -132,11 +132,15 @@ function parseNestedObject(
   // Extract nested key-value pairs using more flexible patterns
 
   // Try to match ButtonName/Name pattern (support embedded quotes)
-  const nameMatch = objectContent.match(/(?:ButtonName|Name)\s*=\s*(["'])(.*?)\1/i);
+  const nameMatch = objectContent.match(
+    /(?:ButtonName|Name)\s*=\s*(["'])(.*?)\1/i
+  );
   if (nameMatch) result.Name = nameMatch[2].trim();
 
   // Try to match ButtonDescription/Description/Desc pattern (support embedded quotes)
-  const descMatch = objectContent.match(/(?:ButtonDescription|Description|Desc)\s*=\s*(["'])(.*?)\1/i);
+  const descMatch = objectContent.match(
+    /(?:ButtonDescription|Description|Desc)\s*=\s*(["'])(.*?)\1/i
+  );
   if (descMatch) result.Description = descMatch[2].trim();
 
   // Try to match Title pattern (support embedded quotes)
