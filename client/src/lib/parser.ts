@@ -30,22 +30,13 @@ function extractDiscordMetadata(content: string): {
     messageTimestamp: null,
   };
 
-  // Try to extract who suggested it (common format: "Considered by Username")
-  const suggestedByMatch =
-    content.match(/Considered by ([^#\n]+)(#\d+)?/i) ||
-    content.match(/suggested_by\s*=\s*["']([^"']+)["']/i) ||
-    content.match(/By\s+([a-zA-Z0-9_]+)/i) ||
-    content.match(/Suggested by ([^#\n]+)/i);
-  if (suggestedByMatch) {
-    metadata.suggestedBy = suggestedByMatch[1].trim();
-  }
-
-  // Try to extract Discord ID (format: <@123456789>)
-  const discordIdMatch = content.match(/<@(\d+)>/);
-  if (discordIdMatch) {
-    metadata.discordId = discordIdMatch[1];
-    // If a Discord ID is found, use it as suggestedBy
-    metadata.suggestedBy = discordIdMatch[1];
+  // Only match 'suggested by <@ID>' if it appears at the very top (first non-empty line)
+  const firstLine =
+    content.split(/\r?\n/).find((line) => line.trim().length > 0) || "";
+  const topSuggestedByMatch = firstLine.match(/suggested by\s+<@(\d+)>/i);
+  if (topSuggestedByMatch) {
+    metadata.suggestedBy = topSuggestedByMatch[1];
+    metadata.discordId = topSuggestedByMatch[1];
   }
 
   // Try to extract message timestamp

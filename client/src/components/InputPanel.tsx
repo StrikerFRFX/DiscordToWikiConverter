@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { detectContinent } from "@/lib/continentMapper";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface InputPanelProps {
   activeTemplate: "formable" | "mission";
@@ -43,10 +44,10 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     null
   );
   const [continentLoading, setContinentLoading] = useState<boolean>(false);
-  const [userId, setUserId] = useState<string>("");
-  const [userIdLocked, setUserIdLocked] = useState<boolean>(false);
+  const [multiContrib, setMultiContrib] = useState(false);
+  const [contributors, setContributors] = useState<string[]>([""]);
 
-  // Only update detectedContinent and userId/userIdLocked from templateData
+  // Only update detectedContinent from templateData
   useEffect(() => {
     let cancelled = false;
     async function updateContinent() {
@@ -70,17 +71,21 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
 
   useEffect(() => {
     if (templateData) {
-      // If suggestedBy is a Discord user ID, lock the field
-      if (/^\d{17,}$/.test(templateData.suggestedBy)) {
-        setUserId(templateData.suggestedBy);
-        setUserIdLocked(true);
+      if (Array.isArray(templateData.suggestedBy)) {
+        setMultiContrib(true);
+        setContributors(
+          templateData.suggestedBy.length ? templateData.suggestedBy : [""]
+        );
+      } else if (templateData.suggestedBy) {
+        setMultiContrib(false);
+        setContributors([templateData.suggestedBy]);
       } else {
-        setUserId(templateData.suggestedBy || "");
-        setUserIdLocked(false);
+        setMultiContrib(false);
+        setContributors([""]);
       }
     } else {
-      setUserId("");
-      setUserIdLocked(false);
+      setMultiContrib(false);
+      setContributors([""]);
     }
   }, [templateData]);
 
@@ -90,13 +95,11 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
         ...templateData,
         formType,
         continent,
-        suggestedBy: userId,
+        suggestedBy: multiContrib
+          ? contributors.filter(Boolean)
+          : contributors[0],
       };
       onDataUpdate(updatedData);
-    }
-    // Lock the field if a Discord ID is entered
-    if (/^\d{17,}$/.test(userId)) {
-      setUserIdLocked(true);
     }
     onParse(discordContent);
   };
@@ -104,8 +107,8 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
   const handleClearClick = () => {
     setDiscordContent("");
     setDetectedContinent(null);
-    setUserId("");
-    setUserIdLocked(false); // Unlock on clear
+    setContributors([""]);
+    setMultiContrib(false);
     onClear();
   };
 
@@ -243,19 +246,62 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
           >
             Suggested By (Discord User ID):
           </Label>
-          <Input
-            id="suggestedByInput"
-            type="text"
-            value={userId}
-            onChange={(e) => {
-              setUserId(e.target.value);
-              if (templateData) {
-                onDataUpdate({ ...templateData, suggestedBy: e.target.value });
-              }
-            }}
-            disabled={userIdLocked}
-            placeholder="Enter Discord User ID or leave blank"
-          />
+          <div className="flex items-center mb-2">
+            <Checkbox
+              id="multiContrib"
+              checked={multiContrib}
+              onCheckedChange={(checked) => setMultiContrib(!!checked)}
+            />
+            <Label htmlFor="multiContrib" className="ml-2 text-sm">
+              Multiple contributors
+            </Label>
+          </div>
+          {multiContrib ? (
+            <div>
+              {contributors.map((c, idx) => (
+                <div key={idx} className="flex items-center mb-1">
+                  <Input
+                    type="text"
+                    value={c}
+                    onChange={(e) => {
+                      const arr = [...contributors];
+                      arr[idx] = e.target.value;
+                      setContributors(arr);
+                    }}
+                    placeholder="Discord User ID or username"
+                    className="mr-2"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setContributors(contributors.filter((_, i) => i !== idx))
+                    }
+                    disabled={contributors.length === 1}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setContributors([...contributors, ""])}
+              >
+                Add Contributor
+              </Button>
+            </div>
+          ) : (
+            <Input
+              id="suggestedByInput"
+              type="text"
+              value={contributors[0]}
+              onChange={(e) => setContributors([e.target.value])}
+              placeholder="Enter Discord User ID or leave blank"
+            />
+          )}
         </div>
 
         <div className="mb-4">

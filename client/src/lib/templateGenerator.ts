@@ -363,8 +363,12 @@ export async function generateWikiTemplate(
   };
 
   // Add suggested_by if present
-  if (templateData.suggestedBy) {
-    templateFields["suggested_by"] = templateData.suggestedBy;
+  if (Array.isArray(templateData.suggestedBy)) {
+    templateFields["suggested_by"] = templateData.suggestedBy
+      .filter(Boolean)
+      .join("<br>");
+  } else {
+    templateFields["suggested_by"] = templateData.suggestedBy || "";
   }
 
   // Add mission-specific fields if needed

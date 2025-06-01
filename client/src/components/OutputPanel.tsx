@@ -40,9 +40,11 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     }
   };
 
-  // Fetch Discord user if templateData.suggestedBy is a Discord user ID
+  // Fix discordId logic to only use string, not array
   const discordId =
-    templateData?.suggestedBy && /^\d{17,}$/.test(templateData.suggestedBy)
+    templateData &&
+    typeof templateData.suggestedBy === "string" &&
+    /^\d{17,}$/.test(templateData.suggestedBy)
       ? templateData.suggestedBy
       : undefined;
   const {
@@ -51,19 +53,24 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     error: discordUserError,
   } = useDiscordUser(discordId);
 
-  // Generate the output code using the username if available, otherwise use the ID
+  // In OutputPanel, handle multiple contributors for suggestedBy
   let displayCode = generatedCode;
-  if (
-    templateData &&
-    discordUser &&
-    discordUser.username &&
-    /^\d{17,}$/.test(templateData.suggestedBy)
-  ) {
-    // Replace only the | suggested_by = ... line in the output
-    displayCode = generatedCode.replace(
-      /(\|\s*suggested_by\s*=\s*)(\d{17,})/,
-      `$1${discordUser.username}`
-    );
+  if (templateData && templateData.suggestedBy) {
+    if (Array.isArray(templateData.suggestedBy)) {
+      // Replace | suggested_by = ... with all contributors joined by <br>
+      const joined = templateData.suggestedBy.filter(Boolean).join("<br>");
+      displayCode = generatedCode.replace(
+        /(\|\s*suggested_by\s*=\s*)(.*)/,
+        `$1${joined}`
+      );
+    } else if (/^\d{17,}$/.test(templateData.suggestedBy)) {
+      if (discordUser && discordUser.username) {
+        displayCode = generatedCode.replace(
+          /(\|\s*suggested_by\s*=\s*)(\d{17,})/,
+          `$1${discordUser.username}`
+        );
+      }
+    }
   }
 
   return (
@@ -110,20 +117,29 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
           {templateData?.suggestedBy && (
             <div className="mb-2">
               <span className="font-semibold">Suggested by: </span>
-              {discordId ? (
+              {Array.isArray(templateData.suggestedBy) ? (
+                templateData.suggestedBy.filter(Boolean).map((c, i) => (
+                  <span key={i}>
+                    {i > 0 && <span>, </span>}
+                    {c}
+                  </span>
+                ))
+              ) : discordId ? (
                 discordUserLoading ? (
                   "Loading..."
                 ) : discordUserError ? (
+                  // Error handling for Discord user lookup
                   <span className="text-red-500">
                     Error: {discordUserError}
                   </span>
                 ) : discordUser && discordUser.username ? (
+                  // Display Discord username if available
                   <span>{discordUser.username}</span>
                 ) : (
                   <span>Unknown user</span>
                 )
               ) : (
-                <span>Unknown user</span>
+                <span>{templateData.suggestedBy}</span>
               )}
             </div>
           )}

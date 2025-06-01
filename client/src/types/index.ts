@@ -17,8 +17,8 @@ export interface TemplateData {
   alertTitle: string;
   alertDescription: string;
   alertButton: string;
-  suggestedBy: string;
-  formType: 'regular' | 'releasable';
+  suggestedBy: string | string[];
+  formType: "regular" | "releasable";
 }
 
 export interface ParseResult {
