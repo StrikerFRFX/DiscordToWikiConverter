@@ -4,7 +4,8 @@ import {
   generateLocationPhrase,
   generateRequirementPhrase,
   generateTilePhrase,
-  getMissionTagline,
+  generateMissionOpeningPhrase,
+  generateMissionRequirementPhrase,
 } from "./taglineGenerator";
 import { detectContinent } from "./continentMapper";
 import consola from "consola";
@@ -121,11 +122,6 @@ async function generateTagline(
 
   const formableName = name || "Unnamed Template";
 
-  if (templateType === "mission") {
-    // Use a random mission tagline
-    return getMissionTagline();
-  }
-
   // Handle continent display - try to detect it if set to auto
   let continentText = "{{Inferred}}";
   if (continent && continent !== "auto") {
@@ -201,10 +197,19 @@ async function generateTagline(
   }
 
   // Use varied language for the tagline
-  const locationPhrase = generateLocationPhrase();
-  const requirementPhrase = generateRequirementPhrase();
+  let locationPhrase = generateLocationPhrase();
+  let requirementPhrase = generateRequirementPhrase();
 
-  const tagline = `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] for {{Flag|Name=${startNationFormatted}}}. It is ${locationPhrase} ${continentText} and ${requirementPhrase} ${requiredCountriesText}${tilesText}.`;
+  // For missions, use mission-specific phrasing
+  if (templateType === "mission") {
+    locationPhrase = generateMissionOpeningPhrase();
+    requirementPhrase = generateMissionRequirementPhrase();
+  }
+
+  const tagline =
+    templateType === "mission"
+      ? `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] for {{Flag|Name=${startNationFormatted}}}. This mission ${locationPhrase} ${continentText} and involves ${requirementPhrase} ${requiredCountriesText}${tilesText}.`
+      : `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] for {{Flag|Name=${startNationFormatted}}}. It is ${locationPhrase} ${continentText} and ${requirementPhrase} ${requiredCountriesText}${tilesText}.`;
   consola.info({ message: "generateTagline result", tagline });
   return tagline;
 }

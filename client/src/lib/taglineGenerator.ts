@@ -61,6 +61,34 @@ const tilePhrases = [
   "specific territories in",
 ];
 
+// Mission-specific opening phrases
+const missionOpeningPhrases = [
+  "tasks the nation with",
+  "sets the objective to",
+  "assigns the goal of",
+  "directs the player to",
+  "challenges the nation to",
+  "gives the mission to",
+  "requires the completion of",
+  "calls for the achievement of",
+  "focuses on",
+  "centers around the goal to",
+];
+
+// Mission-specific requirement phrases
+const missionRequirementPhrases = [
+  "completing the conquest of",
+  "achieving control over",
+  "fulfilling the annexation of",
+  "securing",
+  "bringing under control",
+  "accomplishing the takeover of",
+  "ensuring the acquisition of",
+  "successfully occupying",
+  "dominating",
+  "establishing authority over",
+];
+
 /**
  * Gets a random phrase from the provided array
  */
@@ -102,5 +130,29 @@ export function generateConnectionPhrase(): string {
 export function generateTilePhrase(): string {
   const phrase = tilePhrases[Math.floor(Math.random() * tilePhrases.length)];
   consola.info({ message: "generateTilePhrase", phrase });
+  return phrase;
+}
+
+/**
+ * Generates a natural-sounding mission opening phrase
+ */
+export function generateMissionOpeningPhrase(): string {
+  const phrase =
+    missionOpeningPhrases[
+      Math.floor(Math.random() * missionOpeningPhrases.length)
+    ];
+  consola.info({ message: "generateMissionOpeningPhrase", phrase });
+  return phrase;
+}
+
+/**
+ * Generates a natural-sounding mission requirement phrase
+ */
+export function generateMissionRequirementPhrase(): string {
+  const phrase =
+    missionRequirementPhrases[
+      Math.floor(Math.random() * missionRequirementPhrases.length)
+    ];
+  consola.info({ message: "generateMissionRequirementPhrase", phrase });
   return phrase;
 }
