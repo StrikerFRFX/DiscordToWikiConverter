@@ -297,11 +297,13 @@ export async function generateWikiTemplate(
     square_count: "",
     population: "",
     manpower: "",
-    decision_name: templateData.decisionName || "",
-    decision_description: templateData.decisionDescription || "",
-    alert_title: templateData.alertTitle || "",
-    alert_description: templateData.alertDescription || "",
-    alert_button: templateData.alertButton || "",
+    decision_name: escapeWikiString(templateData.decisionName || ""),
+    decision_description: escapeWikiString(
+      templateData.decisionDescription || ""
+    ),
+    alert_title: escapeWikiString(templateData.alertTitle || ""),
+    alert_description: escapeWikiString(templateData.alertDescription || ""),
+    alert_button: escapeWikiString(templateData.alertButton || ""),
   };
 
   // Add suggested_by if present
@@ -387,6 +389,13 @@ export async function generateWikiTemplate(
 
   consola.info({ message: "generateWikiTemplate result", template });
   return template;
+}
+
+// Utility to escape special characters for wiki templates
+function escapeWikiString(str: string): string {
+  if (!str) return str;
+  // Escape single quotes and other special wiki characters as needed
+  return str.replace(/'/g, "&#39;");
 }
 
 export { generateTagline };
