@@ -147,21 +147,65 @@ function generateTagline(
  * Generate the full wiki template
  */
 export function generateWikiTemplate(templateData: TemplateData, templateType: 'formable' | 'mission'): string {
-  // Handle tiles formatting - pass templateType parameter
-  const { formattedTiles, tilesForTagline } = formatRequiredTiles(templateData.requiredTiles, templateType);
+  // Parse required countries
+  const requiredCountriesArray = templateData.requiredCountries
+    ? templateData.requiredCountries.split(',').map(c => c.trim()).filter(c => c)
+    : [];
+
+  // Parse required tiles and group by country
+  const tilesByCountry: Record<string, string[]> = {};
+  if (templateData.requiredTiles) {
+    const tileArray = templateData.requiredTiles.split(',').map(t => t.trim()).filter(t => t);
+    tileArray.forEach(tile => {
+      const parts = tile.split('.');
+      const country = parts[0];
+      if (!tilesByCountry[country]) {
+        tilesByCountry[country] = [];
+      }
+      tilesByCountry[country].push(tile);
+    });
+  }
+
+  // Build the required section
+  let requiredSection = '';
   
+  // Add all required countries first
+  requiredCountriesArray.forEach((country, index) => {
+    requiredSection += `{{Flag|Name=${country}}}`;
+    if (index < requiredCountriesArray.length - 1 || Object.keys(tilesByCountry).length > 0) {
+      requiredSection += '<br>\n';
+    }
+  });
+
+  // Add countries with tiles
+  const tileCountries = Object.keys(tilesByCountry);
+  tileCountries.forEach((country, index) => {
+    const tiles = tilesByCountry[country];
+    const cityText = tiles.length > 1 ? 'cities' : 'city';
+    
+    if (templateType === 'formable') {
+      requiredSection += `{{Flag|Name=${country}}}<br><small>(TBD ${cityText})</small>`;
+    } else {
+      requiredSection += `{{Flag|Name=${country}}}<br><small>(TBD ${cityText} required)</small>`;
+    }
+    
+    if (index < tileCountries.length - 1) {
+      requiredSection += '<br>\n';
+    }
+  });
+
   // Convert fields to proper format
   const templateFields: Record<string, string> = {
     'image1': '',
     'image2': '',
     'start_nation': formatCountryList(templateData.startNation),
-    'required': formatCountryList(templateData.requiredCountries) + (formattedTiles ? `\n${formattedTiles}` : ''),
+    'required': requiredSection,
     'continent': '{{Inferred}}',
     'stab_gain': templateData.stabilityGain || '',
-    'city_count': templateData.cityCount || '',
-    'square_count': templateData.squareCount || '',
-    'population': templateData.population || '',
-    'manpower': templateData.manpower || '',
+    'city_count': '',
+    'square_count': '',
+    'population': '',
+    'manpower': '',
     'decision_name': templateData.decisionName || '',
     'decision_description': templateData.decisionDescription || '',
     'alert_title': templateData.alertTitle || '',
@@ -185,24 +229,29 @@ export function generateWikiTemplate(templateData: TemplateData, templateType: '
     templateFields['demonym'] = templateData.demonym;
   }
   
-  // Always keep continent as {{Inferred}} in the template
-  templateFields['continent'] = '{{Inferred}}';
-  
   // Build template string
   const templateName = templateType === 'formable' ? 'ConsideredFormable' : 'ConsideredMission';
   let template = `{{Considered}}{{${templateName}\n`;
   
-  // Add all fields to template
-  Object.entries(templateFields).forEach(([key, value]) => {
-    if (value !== undefined && value !== '') {
-      template += `| ${key} = ${value}\n`;
+  // Add all fields to template in the correct order
+  const fieldOrder = [
+    'image1', 'image2', 'start_nation', 'required', 'continent', 'stab_gain', 
+    'city_count', 'square_count', 'population', 'demonym', 'manpower', 
+    'decision_name', 'decision_description', 'alert_title', 'alert_description', 
+    'alert_button', 'suggested_by', 'pp_gain', 'required_stability'
+  ];
+  
+  fieldOrder.forEach(key => {
+    if (templateFields[key] !== undefined && templateFields[key] !== '') {
+      template += `| ${key} = ${templateFields[key]}\n`;
     }
   });
   
   // Close the template
-  template += `}}{{Description|Country forming description=${templateData.alertDescription}}}\n\n`;
+  template += `}}\n{{Description|Country forming description=${templateData.alertDescription}}}\n\n`;
   
   // Generate and add tagline
+  const { tilesForTagline } = formatRequiredTiles(templateData.requiredTiles, templateType);
   const tagline = generateTagline(templateData, templateType, tilesForTagline);
   template += tagline;
   
