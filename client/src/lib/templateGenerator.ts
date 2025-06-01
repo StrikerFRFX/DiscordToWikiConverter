@@ -373,7 +373,7 @@ export async function generateWikiTemplate(
     templateFields["required_stability"] = templateData.requiredStability || "";
   }
 
-  // Add demonym if present
+  // Add demonym if present, after continent
   if (templateData.demonym) {
     templateFields["demonym"] = templateData.demonym;
   }
