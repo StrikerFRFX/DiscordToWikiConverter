@@ -2,6 +2,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import discordUserRouter from "./discordUser";
+import path from "path";
+import consola from "consola";
 
 const app = express();
 app.use(express.json());
@@ -38,6 +40,10 @@ app.use((req, res, next) => {
 });
 
 app.use("/api", discordUserRouter);
+app.use(express.static(path.join(__dirname, '../client/dist')));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
 
 (async () => {
   const server = await registerRoutes(app);
@@ -62,9 +68,8 @@ app.use("/api", discordUserRouter);
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = 5000;
-  // Use legacy listen signature for compatibility
-  server.listen(port, () => {
-    log(`serving on port ${port}`);
+  const port = Number(process.env.PORT) || 5000;
+  app.listen(port, '0.0.0.0', () => {
+    consola.info(`Server running on port ${port}`);
   });
 })();
