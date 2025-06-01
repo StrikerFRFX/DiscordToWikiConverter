@@ -201,15 +201,14 @@ async function generateTagline(
   let requirementPhrase = generateRequirementPhrase();
 
   // For missions, use mission-specific phrasing
+  let tagline = "";
   if (templateType === "mission") {
-    locationPhrase = generateMissionOpeningPhrase();
-    requirementPhrase = generateMissionRequirementPhrase();
+    // Combine mission opening and requirement phrases for a natural action clause
+    const actionClause = `${generateMissionOpeningPhrase()} ${requirementPhrase} ${requiredCountriesText}${tilesText}`;
+    tagline = `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] for {{Flag|Name=${startNationFormatted}}}. This mission ${actionClause}, and is ${locationPhrase} ${continentText}.`;
+  } else {
+    tagline = `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] for {{Flag|Name=${startNationFormatted}}}. It is ${locationPhrase} ${continentText} and ${requirementPhrase} ${requiredCountriesText}${tilesText}.`;
   }
-
-  const tagline =
-    templateType === "mission"
-      ? `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] for {{Flag|Name=${startNationFormatted}}}. This mission ${locationPhrase} ${continentText} and involves ${requirementPhrase} ${requiredCountriesText}${tilesText}.`
-      : `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] for {{Flag|Name=${startNationFormatted}}}. It is ${locationPhrase} ${continentText} and ${requirementPhrase} ${requiredCountriesText}${tilesText}.`;
   consola.info({ message: "generateTagline result", tagline });
   return tagline;
 }
