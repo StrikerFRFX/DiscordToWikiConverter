@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 const AppHeader: React.FC = () => {
   return (
@@ -21,6 +21,17 @@ const AppHeader: React.FC = () => {
           >
             <i className="fas fa-external-link-alt mr-1"></i> Wiki Home
           </a>
+          <span className="text-xs text-white/80 ml-4">
+            Created by{" "}
+            <a
+              href="https://github.com/StrikerFRFX"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-white"
+            >
+              StrikerFRFX
+            </a>
+          </span>
         </div>
       </div>
     </header>
