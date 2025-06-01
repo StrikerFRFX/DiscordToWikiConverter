@@ -44,27 +44,24 @@ const port = Number(process.env.PORT) || 5000;
 const server = app.listen(port, "0.0.0.0", () => {
   consola.info(`Server running on port ${port}`);
 
-  // Only import and use Vite in development, after server is started
-  if (app.get("env") === "development") {
-    (async () => {
-      // Only import vite in dev, and only if vite.js exists
-      try {
-        const { setupVite } = await import("./vite.js");
-        await setupVite(app, server);
-      } catch (e) {
-        consola.warn(
-          "Vite dev server not started: vite.js not found or not needed in production."
-        );
-      }
-    })();
+  // Only require and use Vite dev server in development, using require so esbuild can tree-shake it
+  if (process.env.NODE_ENV === "development") {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      require("./viteDevServer").setupVite(app, server);
+    } catch (e) {
+      consola.warn(
+        "Vite dev server not started: viteDevServer.js not found or not needed in production."
+      );
+    }
   }
 });
 
 if (app.get("env") !== "development") {
-  // Serve static files in production
-  app.use(express.static(path.join(__dirname, "../client/dist")));
+  // Serve static files in production from dist/client
+  app.use(express.static(path.join(__dirname, "client")));
   app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../client/dist/index.html"));
+    res.sendFile(path.join(__dirname, "client/index.html"));
   });
 }
 
