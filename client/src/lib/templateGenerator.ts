@@ -163,7 +163,7 @@ async function generateTagline(
 
   // Add tiles info if present using varied language
   let tilesText = "";
-  if (tilesInfo && templateData.requiredTiles) {
+  if (templateData.requiredTiles) {
     // Get all tile countries from requiredTiles, excluding those already in requiredCountriesArray
     const tileCountries = Array.from(
       new Set(
@@ -374,7 +374,7 @@ export async function generateWikiTemplate(
   }
 
   // Add demonym if present, after continent
-  if (templateData.demonym) {
+  if (templateData.demonym && templateData.demonym.trim() !== "") {
     templateFields["demonym"] = templateData.demonym;
   }
 
