@@ -289,39 +289,35 @@ export async function generateWikiTemplate(
   const templateFields: Record<string, string> = {
     image1: "",
     image2: "",
-    start_nation: escapeWikiString(formatCountryList(templateData.startNation)),
-    required: escapeWikiString(requiredSection),
+    start_nation: formatCountryList(templateData.startNation),
+    required: requiredSection,
     continent: "{{Inferred}}",
-    stab_gain: escapeWikiString(templateData.stabilityGain || ""),
-    city_count: escapeWikiString(templateData.cityCount || ""),
-    square_count: escapeWikiString(templateData.squareCount || ""),
-    population: escapeWikiString(templateData.population || ""),
-    manpower: escapeWikiString(templateData.manpower || ""),
-    decision_name: escapeWikiString(templateData.decisionName || ""),
-    decision_description: escapeWikiString(
-      templateData.decisionDescription || ""
-    ),
-    alert_title: escapeWikiString(templateData.alertTitle || ""),
-    alert_description: escapeWikiString(templateData.alertDescription || ""),
-    alert_button: escapeWikiString(templateData.alertButton || ""),
+    stab_gain: templateData.stabilityGain || "",
+    city_count: templateData.cityCount || "",
+    square_count: templateData.squareCount || "",
+    population: templateData.population || "",
+    manpower: templateData.manpower || "",
+    decision_name: templateData.decisionName || "",
+    decision_description: templateData.decisionDescription || "",
+    alert_title: templateData.alertTitle || "",
+    alert_description: templateData.alertDescription || "",
+    alert_button: templateData.alertButton || "",
   };
 
   // Add suggested_by if present
   if (templateData.suggestedBy) {
-    templateFields["suggested_by"] = escapeWikiString(templateData.suggestedBy);
+    templateFields["suggested_by"] = templateData.suggestedBy;
   }
 
   // Add mission-specific fields if needed
   if (templateType === "mission") {
-    templateFields["pp_gain"] = escapeWikiString(templateData.ppGain || "");
-    templateFields["required_stability"] = escapeWikiString(
-      templateData.requiredStability || ""
-    );
+    templateFields["pp_gain"] = templateData.ppGain || "";
+    templateFields["required_stability"] = templateData.requiredStability || "";
   }
 
   // Add demonym if present
   if (templateData.demonym) {
-    templateFields["demonym"] = escapeWikiString(templateData.demonym);
+    templateFields["demonym"] = templateData.demonym;
   }
 
   // Set continent field correctly
@@ -331,12 +327,12 @@ export async function generateWikiTemplate(
       templateData.requiredCountries
     );
     templateFields["continent"] = detectedContinent
-      ? `{{${escapeWikiString(detectedContinent)}}}`
+      ? `{{${detectedContinent}}}`
       : "{{Inferred}}";
   } else {
     templateFields["continent"] =
       templateData.continent && templateData.continent !== "auto"
-        ? `{{${escapeWikiString(templateData.continent)}}}`
+        ? `{{${templateData.continent}}}`
         : templateFields["continent"] || "{{Inferred}}";
   }
 
@@ -375,9 +371,7 @@ export async function generateWikiTemplate(
   });
 
   // Close the template
-  template += `}}\n{{Description|Country forming description=${escapeWikiString(
-    templateData.alertDescription
-  )}}}\n\n`;
+  template += `}}\n{{Description|Country forming description=${templateData.alertDescription}}}\n\n`;
 
   // Generate and add tagline
   const { tilesForTagline } = formatRequiredTiles(
@@ -385,28 +379,7 @@ export async function generateWikiTemplate(
     templateType
   );
   const tagline = await generateTagline(
-    {
-      ...templateData,
-      startNation: escapeWikiString(templateData.startNation),
-      requiredCountries: escapeWikiString(templateData.requiredCountries),
-      requiredTiles: escapeWikiString(templateData.requiredTiles),
-      continent: escapeWikiString(templateData.continent),
-      stabilityGain: escapeWikiString(templateData.stabilityGain),
-      ppGain: escapeWikiString(templateData.ppGain),
-      requiredStability: escapeWikiString(templateData.requiredStability),
-      cityCount: escapeWikiString(templateData.cityCount),
-      squareCount: escapeWikiString(templateData.squareCount),
-      population: escapeWikiString(templateData.population),
-      manpower: escapeWikiString(templateData.manpower),
-      demonym: escapeWikiString(templateData.demonym),
-      decisionName: escapeWikiString(templateData.decisionName),
-      decisionDescription: escapeWikiString(templateData.decisionDescription),
-      alertTitle: escapeWikiString(templateData.alertTitle),
-      alertDescription: escapeWikiString(templateData.alertDescription),
-      alertButton: escapeWikiString(templateData.alertButton),
-      suggestedBy: escapeWikiString(templateData.suggestedBy),
-      formType: templateData.formType,
-    },
+    templateData,
     templateType,
     tilesForTagline
   );
