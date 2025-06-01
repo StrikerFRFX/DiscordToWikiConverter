@@ -17,7 +17,7 @@ export default defineConfig({
     process.env.REPL_ID !== undefined
       ? [
           await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
+            m.cartographer()
           ),
         ]
       : []),
@@ -32,5 +32,10 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+  },
+  server: {
+    proxy: {
+      "/api": "http://localhost:5000",
+    },
   },
 });

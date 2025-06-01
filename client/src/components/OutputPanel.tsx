@@ -1,27 +1,28 @@
-import React, { useState } from 'react';
-import { TemplateData } from '@/types';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React from "react";
+import { TemplateData } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle, AlertCircle } from 'lucide-react';
-import PreviewPanel from './PreviewPanel';
-import { useToast } from '@/hooks/use-toast';
+import { CheckCircle, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useDiscordUser } from "@/hooks/use-discord-user";
+import { generateWikiTemplate } from "@/lib/templateGenerator";
 
 interface OutputPanelProps {
   generatedCode: string;
   parseStatus: { success: boolean; message: string } | null;
   templateData: TemplateData | null;
-  activeTemplate: 'formable' | 'mission';
+  activeTemplate: "formable" | "mission";
 }
 
-const OutputPanel: React.FC<OutputPanelProps> = ({ 
-  generatedCode, 
-  parseStatus, 
+const OutputPanel: React.FC<OutputPanelProps> = ({
+  generatedCode,
+  parseStatus,
   templateData,
-  activeTemplate
+  activeTemplate,
 }) => {
   const { toast } = useToast();
-  
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(generatedCode);
@@ -30,11 +31,11 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         description: "Template code copied to clipboard",
       });
     } catch (err) {
-      console.error('Could not copy text: ', err);
+      console.error("Could not copy text: ", err);
       toast({
         title: "Error",
         description: "Failed to copy to clipboard",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -42,44 +43,70 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   const handleExport = () => {
     try {
       // Create a blob from the text
-      const blob = new Blob([generatedCode], { type: 'text/plain' });
+      const blob = new Blob([generatedCode], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
-      
+
       // Create a temporary anchor element to download the file
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = templateData?.name 
-        ? `${templateData.name.replace(/\s+/g, '_')}_wiki_template.txt` 
+      a.download = templateData?.name
+        ? `${templateData.name.replace(/\s+/g, "_")}_wiki_template.txt`
         : `wiki_template.txt`;
-      
+
       document.body.appendChild(a);
       a.click();
-      
+
       // Clean up
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       toast({
         title: "Exported!",
         description: "Template exported to file",
       });
     } catch (error) {
-      console.error('Export error:', error);
+      console.error("Export error:", error);
       toast({
         title: "Error",
         description: "Failed to export template",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
+
+  // Fetch Discord user if templateData.suggestedBy is a Discord user ID
+  const discordId =
+    templateData?.suggestedBy && /^\d{17,}$/.test(templateData.suggestedBy)
+      ? templateData.suggestedBy
+      : undefined;
+  const {
+    user: discordUser,
+    loading: discordUserLoading,
+    error: discordUserError,
+  } = useDiscordUser(discordId);
+
+  // Generate the output code using the username if available, otherwise use the ID
+  let displayCode = generatedCode;
+  if (
+    templateData &&
+    discordUser &&
+    discordUser.username &&
+    /^\d{17,}$/.test(templateData.suggestedBy)
+  ) {
+    // Replace only the | suggested_by = ... line in the output
+    displayCode = generatedCode.replace(
+      /(\|\s*suggested_by\s*=\s*)(\d{17,})/,
+      `$1${discordUser.username}`
+    );
+  }
 
   return (
     <Card className="bg-white rounded-lg shadow-md">
       <CardHeader className="bg-primary-light text-white rounded-t-lg flex flex-row justify-between items-center">
         <CardTitle>Output - Wiki Template</CardTitle>
         {generatedCode && (
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             onClick={handleCopy}
             className="text-accent hover:text-white transition duration-200"
           >
@@ -92,8 +119,14 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
           <div className="mb-4">
             <Alert variant={parseStatus.success ? "default" : "destructive"}>
               <div className="flex items-center gap-2">
-                {parseStatus.success ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                <AlertTitle>{parseStatus.success ? "Success!" : "Error!"}</AlertTitle>
+                {parseStatus.success ? (
+                  <CheckCircle className="h-4 w-4" />
+                ) : (
+                  <AlertCircle className="h-4 w-4" />
+                )}
+                <AlertTitle>
+                  {parseStatus.success ? "Success!" : "Error!"}
+                </AlertTitle>
               </div>
               <AlertDescription>{parseStatus.message}</AlertDescription>
             </Alert>
@@ -102,23 +135,45 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
 
         <div className="mb-4">
           <pre className="bg-gray-100 p-4 rounded overflow-auto text-sm font-mono h-64">
-            {generatedCode || `<!-- The wiki template will appear here after generation -->`}
+            {displayCode ||
+              `<!-- The wiki template will appear here after generation -->`}
           </pre>
         </div>
 
-        {templateData && (
-          <PreviewPanel templateData={templateData} activeTemplate={activeTemplate} />
-        )}
+        <div className="mb-4">
+          {templateData?.suggestedBy && (
+            <div className="mb-2">
+              <span className="font-semibold">Suggested by: </span>
+              {discordId ? (
+                discordUserLoading ? (
+                  "Loading..."
+                ) : discordUserError ? (
+                  <span className="text-red-500">
+                    Error: {discordUserError}
+                  </span>
+                ) : discordUser && discordUser.username ? (
+                  <span>{discordUser.username}</span>
+                ) : (
+                  <span>Unknown user</span>
+                )
+              ) : (
+                <span>Unknown user</span>
+              )}
+            </div>
+          )}
+        </div>
 
         {generatedCode && (
           <div>
-            <Button 
+            <Button
               onClick={handleExport}
               className="bg-primary hover:bg-purple-900 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-200"
             >
               <i className="fas fa-download mr-2"></i> Export
             </Button>
-            <span className="text-sm text-gray-500 ml-2">For direct wiki upload</span>
+            <span className="text-sm text-gray-500 ml-2">
+              For direct wiki upload
+            </span>
           </div>
         )}
       </CardContent>

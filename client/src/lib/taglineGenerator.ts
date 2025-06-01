@@ -1,3 +1,5 @@
+import consola from "consola";
+
 /**
  * A set of template phrases for generating natural-sounding taglines
  * These are variations that can be randomly selected to create diverse descriptions
@@ -14,7 +16,7 @@ const openingPhrases = [
   "mostly located within",
   "chiefly situated in",
   "primarily based in",
-  "mainly found in"
+  "mainly found in",
 ];
 
 // Phrases for describing the requirement to take territories
@@ -28,7 +30,7 @@ const requirementPhrases = [
   "requires the annexation of",
   "demands securing",
   "requires seizing",
-  "necessitates taking"
+  "necessitates taking",
 ];
 
 // Phrases for connecting the main territories and additional tiles
@@ -42,7 +44,7 @@ const connectionPhrases = [
   "and also",
   "including",
   "combined with",
-  "accompanied by"
+  "accompanied by",
 ];
 
 // Phrases specifically for tile territories
@@ -56,7 +58,7 @@ const tilePhrases = [
   "specific regions in",
   "designated areas in",
   "territorial sections of",
-  "specific territories in"
+  "specific territories in",
 ];
 
 /**
@@ -71,14 +73,20 @@ function getRandomPhrase(phrases: string[]): string {
  * Generates a natural-sounding location phrase
  */
 export function generateLocationPhrase(): string {
-  return getRandomPhrase(openingPhrases);
+  const phrase =
+    openingPhrases[Math.floor(Math.random() * openingPhrases.length)];
+  consola.info({ message: "generateLocationPhrase", phrase });
+  return phrase;
 }
 
 /**
  * Generates a natural-sounding requirement phrase
  */
 export function generateRequirementPhrase(): string {
-  return getRandomPhrase(requirementPhrases);
+  const phrase =
+    requirementPhrases[Math.floor(Math.random() * requirementPhrases.length)];
+  consola.info({ message: "generateRequirementPhrase", phrase });
+  return phrase;
 }
 
 /**
@@ -92,5 +100,7 @@ export function generateConnectionPhrase(): string {
  * Generates a natural-sounding phrase for tile territories
  */
 export function generateTilePhrase(): string {
-  return getRandomPhrase(tilePhrases);
+  const phrase = tilePhrases[Math.floor(Math.random() * tilePhrases.length)];
+  consola.info({ message: "generateTilePhrase", phrase });
+  return phrase;
 }
