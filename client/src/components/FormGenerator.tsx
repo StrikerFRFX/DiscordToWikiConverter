@@ -3,7 +3,11 @@ import InputPanel from "./InputPanel";
 import OutputPanel from "./OutputPanel";
 import { TemplateData, ParseResult } from "@/types";
 import { parseDiscordMessage } from "@/lib/parser";
-import { generateWikiTemplate, generateTagline } from "@/lib/templateGenerator";
+import {
+  generateWikiTemplate,
+  generateTagline,
+  copyTaglineToClipboard,
+} from "@/lib/templateGenerator";
 import { useToast } from "@/hooks/use-toast";
 import consola from "consola";
 if (typeof window !== "undefined") {
@@ -75,6 +79,11 @@ const FormGenerator: React.FC = () => {
           continent,
         };
         setTemplateData(data);
+        // Show loading toast
+        const loadingToast = toast({
+          title: "Generating...",
+          description: "Generating wiki template, please wait...",
+        });
         // Generate the wiki template (async)
         generateWikiTemplate(data, activeTemplate).then((generated) => {
           consola.info({
@@ -83,14 +92,16 @@ const FormGenerator: React.FC = () => {
             templateData: data,
           });
           setGeneratedCode(generated);
-        });
-        setParseStatus({
-          success: true,
-          message: "Template generated successfully!",
-        });
-        toast({
-          title: "Success!",
-          description: "Template generated successfully.",
+          setParseStatus({
+            success: true,
+            message: "Template generated successfully!",
+          });
+          toast({
+            title: "Success!",
+            description: "Template generated successfully.",
+          });
+          // Optionally dismiss the loading toast if your toast system supports it
+          if (loadingToast && loadingToast.dismiss) loadingToast.dismiss();
         });
       } else {
         setParseStatus({
