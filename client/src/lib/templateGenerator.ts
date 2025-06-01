@@ -204,6 +204,28 @@ async function generateTagline(
 }
 
 /**
+ * Copy the generated tagline to the clipboard
+ */
+export async function copyTaglineToClipboard(
+  templateData: TemplateData,
+  templateType: "formable" | "mission",
+  tilesInfo: { country: string; cityText: string } | null
+): Promise<void> {
+  const tagline = await generateTagline(templateData, templateType, tilesInfo);
+  if (typeof navigator !== "undefined" && navigator.clipboard) {
+    await navigator.clipboard.writeText(tagline);
+  } else {
+    // Fallback for environments without clipboard API
+    const textarea = document.createElement("textarea");
+    textarea.value = tagline;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+  }
+}
+
+/**
  * Generate the full wiki template
  */
 export async function generateWikiTemplate(
