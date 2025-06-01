@@ -169,16 +169,18 @@ export function generateWikiTemplate(templateData: TemplateData, templateType: '
   // Build the required section
   let requiredSection = '';
   
-  // Add all required countries first
-  requiredCountriesArray.forEach((country, index) => {
+  // Add all required countries first (excluding those that have tiles)
+  const tileCountries = Object.keys(tilesByCountry);
+  const regularCountries = requiredCountriesArray.filter(country => !tileCountries.includes(country));
+  
+  regularCountries.forEach((country, index) => {
     requiredSection += `{{Flag|Name=${country}}}`;
-    if (index < requiredCountriesArray.length - 1 || Object.keys(tilesByCountry).length > 0) {
+    if (index < regularCountries.length - 1 || tileCountries.length > 0) {
       requiredSection += '<br>\n';
     }
   });
 
   // Add countries with tiles
-  const tileCountries = Object.keys(tilesByCountry);
   tileCountries.forEach((country, index) => {
     const tiles = tilesByCountry[country];
     const cityText = tiles.length > 1 ? 'cities' : 'city';
