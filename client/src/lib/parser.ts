@@ -230,8 +230,10 @@ export function parseDiscordMessage(
 
     if (templateType === "formable") {
       // Extract formable-specific fields
-      const formableName = parseKeyValuePair(content, "FormableName");
-      templateData.name = formableName || "";
+      let formableName = parseKeyValuePair(content, "FormableName");
+      let missionName = parseKeyValuePair(content, "MissionName");
+      // Prefer FormableName, but fallback to MissionName if not found
+      templateData.name = formableName || missionName || "";
 
       const countriesCanForm = parseArray(content, "CountriesCanForm");
       templateData.startNation = countriesCanForm.join(", ");
@@ -269,8 +271,10 @@ export function parseDiscordMessage(
     } else {
       // Mission template
       // Extract mission-specific fields
-      const missionName = parseKeyValuePair(content, "MissionName");
-      templateData.name = missionName || "";
+      let missionName = parseKeyValuePair(content, "MissionName");
+      let formableName = parseKeyValuePair(content, "FormableName");
+      // Prefer MissionName, but fallback to FormableName if not found
+      templateData.name = missionName || formableName || "";
 
       const countriesCanForm = parseArray(content, "CountriesCanForm");
       templateData.startNation = countriesCanForm.join(", ");
