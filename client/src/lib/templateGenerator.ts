@@ -373,7 +373,12 @@ export async function generateWikiTemplate(
   });
 
   // Close the template
-  template += `}}\n{{Description|Country forming description=${templateData.alertDescription}}}\n\n`;
+  template += `}}
+{{Description|Country forming description=${escapeWikiString(
+    templateData.alertDescription
+  )}}}
+
+`;
 
   // Generate and add tagline
   const { tilesForTagline } = formatRequiredTiles(
