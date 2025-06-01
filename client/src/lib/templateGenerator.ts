@@ -6,6 +6,7 @@ import {
   generateTilePhrase,
   generateMissionOpeningPhrase,
   generateMissionRequirementPhrase,
+  generateMissionActionPhrase,
 } from "./taglineGenerator";
 import { detectContinent } from "./continentMapper";
 import consola from "consola";
@@ -203,9 +204,9 @@ async function generateTagline(
   // For missions, use mission-specific phrasing
   let tagline = "";
   if (templateType === "mission") {
-    // Combine mission opening and requirement phrases for a natural action clause
-    const actionClause = `${generateMissionOpeningPhrase()} ${requirementPhrase} ${requiredCountriesText}${tilesText}`;
-    tagline = `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] for {{Flag|Name=${startNationFormatted}}}. This mission ${actionClause}, and is ${locationPhrase} ${continentText}.`;
+    // Use mission opening + action phrase for correct grammar
+    const actionPhrase = generateMissionActionPhrase();
+    tagline = `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] for {{Flag|Name=${startNationFormatted}}}. This mission ${generateMissionOpeningPhrase()} ${actionPhrase} ${requiredCountriesText}${tilesText}, and is ${locationPhrase} ${continentText}.`;
   } else {
     tagline = `'''${formableName}''' is a [[:Category:Considered|considered]] [[:Category:${categoryType}|${typeText}]] for {{Flag|Name=${startNationFormatted}}}. It is ${locationPhrase} ${continentText} and ${requirementPhrase} ${requiredCountriesText}${tilesText}.`;
   }

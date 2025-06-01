@@ -89,6 +89,25 @@ const missionRequirementPhrases = [
   "establishing authority over",
 ];
 
+// Mission-specific action phrases (verbs/verb phrases for use after "to")
+const missionActionPhrases = [
+  "conquer",
+  "secure",
+  "control",
+  "annex",
+  "occupy",
+  "acquire",
+  "dominate",
+  "bring under control",
+  "take over",
+  "gain control of",
+  "subjugate",
+  "incorporate",
+  "unify",
+  "absorb",
+  "integrate",
+];
+
 /**
  * Gets a random phrase from the provided array
  */
@@ -154,5 +173,17 @@ export function generateMissionRequirementPhrase(): string {
       Math.floor(Math.random() * missionRequirementPhrases.length)
     ];
   consola.info({ message: "generateMissionRequirementPhrase", phrase });
+  return phrase;
+}
+
+/**
+ * Generates a natural-sounding mission action phrase
+ */
+export function generateMissionActionPhrase(): string {
+  const phrase =
+    missionActionPhrases[
+      Math.floor(Math.random() * missionActionPhrases.length)
+    ];
+  consola.info({ message: "generateMissionActionPhrase", phrase });
   return phrase;
 }
