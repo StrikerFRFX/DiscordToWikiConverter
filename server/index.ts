@@ -40,9 +40,9 @@ app.use((req, res, next) => {
 });
 
 app.use("/api", discordUserRouter);
-app.use(express.static(path.join(__dirname, '../client/dist')));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+app.use(express.static(path.join(__dirname, "../client/dist")));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../client/dist/index.html"));
 });
 
 (async () => {
@@ -69,7 +69,7 @@ app.get('*', (req, res) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = Number(process.env.PORT) || 5000;
-  app.listen(port, '0.0.0.0', () => {
+  app.listen(port, "0.0.0.0", () => {
     consola.info(`Server running on port ${port}`);
   });
 })();
