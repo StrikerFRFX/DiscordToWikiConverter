@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { TemplateData } from "../types";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -40,10 +40,12 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     }
   };
 
-  // Fix discordId logic to only use string, not array
+  // Always handle string or array for suggestedBy
   const discordIds =
     templateData && Array.isArray(templateData.suggestedBy)
-      ? templateData.suggestedBy.filter((id) => /^\d{17,}$/.test(id))
+      ? templateData.suggestedBy.filter(
+          (id) => typeof id === "string" && /^\d{17,}$/.test(id)
+        )
       : typeof templateData?.suggestedBy === "string" &&
         /^\d{17,}$/.test(templateData.suggestedBy)
       ? [templateData.suggestedBy]
@@ -65,10 +67,12 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
             ? user.username
             : discordIds[i] || "Unknown user"
         )
-        .join("<br>\n");
+        .join(", "); // Use comma-space, not <br> or \n
+      // Remove trailing spaces and newlines from the joined string
+      const cleanJoined = joined.trim().replace(/[\s,]+$/, "");
       displayCode = generatedCode.replace(
         /(\|\s*suggested_by\s*=\s*)(.*)/,
-        `$1${joined}`
+        `$1${cleanJoined}`
       );
     } else if (/^\d{17,}$/.test(templateData.suggestedBy)) {
       if (discordUsers[0] && discordUsers[0].username) {
@@ -92,15 +96,20 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
         );
       } else {
         contributorDisplay = discordUsers.map((user, i) => (
-          <span key={i}>
-            {i > 0 && <span>, </span>}
-            {user && user.username
-              ? user.username
-              : discordIds[i] || "Unknown user"}
+          <span key={i} className="inline-flex items-center gap-2 mr-2">
+            <span className="font-semibold">
+              {user && user.username
+                ? user.username
+                : discordIds[i] || "Unknown user"}
+            </span>
+            {i < discordUsers.length - 1 && <span>,</span>}
           </span>
         ));
       }
-    } else if (discordIds.length === 1) {
+    } else if (
+      typeof templateData.suggestedBy === "string" &&
+      /^\d{17,}$/.test(templateData.suggestedBy)
+    ) {
       if (discordUsersLoading) {
         contributorDisplay = <span>Loading...</span>;
       } else if (discordUsersError) {
@@ -108,17 +117,67 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
           <span className="text-red-500">Error: {discordUsersError}</span>
         );
       } else {
-        contributorDisplay =
-          discordUsers[0] && discordUsers[0].username ? (
-            <span>{discordUsers[0].username}</span>
-          ) : (
-            <span>{discordIds[0]}</span>
-          );
+        const user = discordUsers[0];
+        contributorDisplay = (
+          <span className="font-semibold">
+            {user && user.username ? user.username : templateData.suggestedBy}
+          </span>
+        );
       }
     } else {
       contributorDisplay = <span>{templateData.suggestedBy}</span>;
     }
   }
+
+  // Roblox asset image extraction for formable modifier icon
+  const [formableModifierIconUrl, setFormableModifierIconUrl] = useState<
+    string | null
+  >(null);
+  const [iconError, setIconError] = useState<string | null>(null);
+  React.useEffect(() => {
+    if (
+      templateData &&
+      typeof templateData.formableModifierIcon === "string" &&
+      /^\d+$/.test(templateData.formableModifierIcon)
+    ) {
+      const iconId = templateData.formableModifierIcon;
+      setIconError(null);
+      // Fetch the thumbnail JSON from Roblox API
+      fetch(
+        `https://thumbnails.roblox.com/v1/assets?assetIds=${iconId}&size=420x420&format=Png&isCircular=false`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Roblox thumbnail API data for iconId", iconId, data);
+          if (data && data.data && data.data[0] && data.data[0].imageUrl) {
+            // Check for known placeholder or error images
+            if (
+              data.data[0].imageUrl.includes("noFilter") ||
+              data.data[0].imageUrl.includes("nothumbnail")
+            ) {
+              setFormableModifierIconUrl(null);
+              setIconError(
+                "No valid Roblox asset thumbnail found for this ID."
+              );
+            } else {
+              setFormableModifierIconUrl(data.data[0].imageUrl);
+              setIconError(null);
+            }
+          } else {
+            setFormableModifierIconUrl(null);
+            setIconError("No valid Roblox asset thumbnail found for this ID.");
+          }
+        })
+        .catch((e) => {
+          setFormableModifierIconUrl(null);
+          setIconError("Error fetching Roblox asset thumbnail.");
+          console.error("Error fetching Roblox asset thumbnail:", e);
+        });
+    } else {
+      setFormableModifierIconUrl(null);
+      setIconError(null);
+    }
+  }, [templateData?.formableModifierIcon]);
 
   return (
     <Card className="bg-white rounded-lg shadow-md">
@@ -168,6 +227,63 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
             </div>
           )}
         </div>
+
+        {/* Custom Modifier Display for Formables */}
+        {activeTemplate === "formable" &&
+          templateData &&
+          (templateData.formableModifierIcon ||
+            templateData.formableModifier ||
+            templateData.formableModifierDescription) && (
+            <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded">
+              <div className="font-bold text-purple-800 mb-1">
+                Custom Modifier
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                {templateData.formableModifierIcon && (
+                  <div>
+                    <span className="font-semibold">Icon:</span>{" "}
+                    {formableModifierIconUrl ? (
+                      <span className="inline-flex flex-col items-center">
+                        <img
+                          src={formableModifierIconUrl}
+                          alt="Roblox Asset Icon"
+                          className="w-16 h-16 object-contain border rounded mb-1"
+                        />
+                        <a
+                          href={formableModifierIconUrl}
+                          download={`roblox-asset-${templateData.formableModifierIcon}.png`}
+                          className="text-xs text-blue-600 underline"
+                        >
+                          Download
+                        </a>
+                        <span className="text-xs text-gray-500 mt-1">
+                          {templateData.formableModifierIcon}
+                        </span>
+                      </span>
+                    ) : iconError ? (
+                      <span className="text-xs text-red-500 ml-2">
+                        {iconError}
+                      </span>
+                    ) : (
+                      <span>{templateData.formableModifierIcon}</span>
+                    )}
+                  </div>
+                )}
+                {templateData.formableModifier && (
+                  <div>
+                    <span className="font-semibold">Name:</span>{" "}
+                    {templateData.formableModifier}
+                  </div>
+                )}
+                {templateData.formableModifierDescription && (
+                  <div>
+                    <span className="font-semibold">Description:</span>{" "}
+                    {templateData.formableModifierDescription}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
         {generatedCode && (
           <div>

@@ -1,7 +1,6 @@
 import express, { Request, Response } from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
-import consola from "consola";
 
 dotenv.config();
 
@@ -9,10 +8,10 @@ const router = express.Router();
 
 // GET /api/discord/user/:id
 router.get("/discord/user/:id", async (req: Request, res: Response) => {
-  consola.info("[discordUser] --- ROUTE ENTERED ---");
+  console.log("[discordUser] --- ROUTE ENTERED ---");
   try {
     const token = process.env.DISCORD_BOT_TOKEN;
-    consola.info(
+    console.log(
       "[discordUser] Token present:",
       !!token,
       "Token value:",
@@ -20,21 +19,21 @@ router.get("/discord/user/:id", async (req: Request, res: Response) => {
     );
     const { id } = req.params;
     if (!id) {
-      consola.log("[discordUser] No user ID provided");
+      console.log("[discordUser] No user ID provided");
       return res.status(400).json({ message: "User ID required" });
     }
 
     const url = `https://discord.com/api/v10/users/${id}`;
-    consola.log("[discordUser] Fetching from Discord API:", url);
+    console.log("[discordUser] Fetching from Discord API:", url);
     const discordRes = await fetch(url, {
       headers: { Authorization: `Bot ${token}` },
     });
-    consola.log(
+    console.log(
       "[discordUser] Discord API response status:",
       discordRes.status
     );
     const text = await discordRes.text();
-    consola.log("[discordUser] Discord API response text:", text);
+    console.log("[discordUser] Discord API response text:", text);
     if (!discordRes.ok) {
       return res.status(discordRes.status).json({ message: text });
     }
@@ -42,7 +41,7 @@ router.get("/discord/user/:id", async (req: Request, res: Response) => {
     try {
       user = JSON.parse(text);
     } catch (e) {
-      consola.log(
+      console.log(
         "[discordUser] Failed to parse Discord API response as JSON",
         e
       );
@@ -53,7 +52,7 @@ router.get("/discord/user/:id", async (req: Request, res: Response) => {
     }
     return res.json(user);
   } catch (err: any) {
-    consola.error(
+    console.error(
       "[discordUser] TOP-LEVEL ERROR:",
       err,
       err && (err as Error).stack

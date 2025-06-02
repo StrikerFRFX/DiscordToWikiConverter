@@ -1,5 +1,4 @@
 // Only used in development. Sets up Vite dev server middleware for Express.
-import consola from "consola";
 
 export function setupVite(app: any, server: any) {
   (async () => {
@@ -10,9 +9,9 @@ export function setupVite(app: any, server: any) {
         root: process.cwd() + "/client",
       });
       app.use(vite.middlewares);
-      consola.info("Vite dev server middleware enabled.");
+      console.log("Vite dev server middleware enabled.");
     } catch (err) {
-      consola.error("Failed to start Vite dev server:", err);
+      console.error("Failed to start Vite dev server:", err);
     }
   })();
 }

@@ -64,6 +64,34 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
   const [multiContrib, setMultiContrib] = useState(false);
   const [showDiscordIdHelp, setShowDiscordIdHelp] = useState(false);
 
+  // Add state for custom modifier fields
+  const [formableModifierIcon, setFormableModifierIcon] = useState<string>(
+    templateData?.formableModifierIcon || ""
+  );
+  const [formableModifier, setFormableModifier] = useState<string>(
+    templateData?.formableModifier || ""
+  );
+  const [formableModifierDescription, setFormableModifierDescription] =
+    useState<string>(templateData?.formableModifierDescription || "");
+
+  // Add lock state for custom modifier fields
+  const [modifierFieldsLocked, setModifierFieldsLocked] = useState(false);
+
+  // Lock modifier fields after parsing, unlock on clear
+  useEffect(() => {
+    if (
+      templateData &&
+      (formableModifierIcon || formableModifier || formableModifierDescription)
+    ) {
+      setModifierFieldsLocked(true);
+    } else {
+      setModifierFieldsLocked(false);
+    }
+  }, [templateData]);
+
+  // Add handler to unlock modifier fields
+  const handleUnlockModifierFields = () => setModifierFieldsLocked(false);
+
   // Only update detectedContinent from templateData
   useEffect(() => {
     let cancelled = false;
@@ -88,21 +116,26 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
 
   useEffect(() => {
     if (templateData) {
+      // Only update contributors if suggestedBy is non-empty and different
       if (Array.isArray(templateData.suggestedBy)) {
-        setMultiContrib(true);
-        onContributorsUpdate(
-          templateData.suggestedBy.length ? templateData.suggestedBy : [""]
-        );
+        if (
+          templateData.suggestedBy.length &&
+          JSON.stringify(templateData.suggestedBy) !==
+            JSON.stringify(contributors)
+        ) {
+          setMultiContrib(true);
+          onContributorsUpdate(templateData.suggestedBy);
+        }
       } else if (templateData.suggestedBy) {
-        setMultiContrib(false);
-        onContributorsUpdate([templateData.suggestedBy]);
-      } else {
-        setMultiContrib(false);
-        onContributorsUpdate([""]);
+        if (
+          !contributors.length ||
+          contributors[0] !== templateData.suggestedBy
+        ) {
+          setMultiContrib(false);
+          onContributorsUpdate([templateData.suggestedBy]);
+        }
       }
-    } else {
-      setMultiContrib(false);
-      onContributorsUpdate([""]);
+      // Do not clear contributors here if suggestedBy is empty
     }
   }, [templateData]);
 
@@ -114,16 +147,54 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
       templateData?.suggestedBy);
 
   useEffect(() => {
+    // Only update contributors if suggestedBy is non-empty and different
     if (
       templateData &&
       typeof templateData.suggestedBy === "string" &&
-      templateData.suggestedBy
+      templateData.suggestedBy &&
+      (!contributors.length || contributors[0] !== templateData.suggestedBy)
     ) {
       onContributorsUpdate([templateData.suggestedBy]);
-    } else {
-      onContributorsUpdate([""]);
     }
+    // Do not clear contributors here
   }, [templateData?.suggestedBy]);
+
+  // Sync custom modifier fields with templateData
+  useEffect(() => {
+    setFormableModifierIcon(templateData?.formableModifierIcon || "");
+    setFormableModifier(templateData?.formableModifier || "");
+    setFormableModifierDescription(
+      templateData?.formableModifierDescription || ""
+    );
+  }, [templateData]);
+
+  // Update parent when custom modifier fields change
+  useEffect(() => {
+    if (
+      templateData &&
+      (formableModifierIcon || formableModifier || formableModifierDescription)
+    ) {
+      onDataUpdate({
+        ...templateData,
+        formableModifierIcon,
+        formableModifier,
+        formableModifierDescription,
+      });
+    }
+    // eslint-disable-next-line
+  }, [formableModifierIcon, formableModifier, formableModifierDescription]);
+
+  // Lock modifier fields after parsing, unlock on clear
+  useEffect(() => {
+    if (
+      templateData &&
+      (formableModifierIcon || formableModifier || formableModifierDescription)
+    ) {
+      setModifierFieldsLocked(true);
+    } else {
+      setModifierFieldsLocked(false);
+    }
+  }, [templateData]);
 
   const handleParseClick = () => {
     if (templateData) {
@@ -143,6 +214,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
   const handleClearClick = () => {
     setDetectedContinent(null);
     setMultiContrib(false);
+    setModifierFieldsLocked(false); // unlock on clear
     onClear();
     onContributorsUpdate([""]);
   };
@@ -187,6 +259,10 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     Name = "Form Example Nation",
     Description = "This nation can be formed by conquering specific territories."
   },
+  // Custom modifier fields (optional):
+  formable_modifier_icon = "GFX_example_icon",
+  formable_modifier = "Example Modifier Name",
+  formable_modifier_description = "This is a custom modifier description."
   CustomAlert = {
     Title = "Example Nation Formed",
     Description = "Our nation has expanded to historic borders, allowing us to proclaim the restoration of Example Nation!",
@@ -363,6 +439,69 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
             </div>
           )}
         </div>
+
+        {/* Custom Modifier Fields for Formables */}
+        {activeTemplate === "formable" && (
+          <div className="mb-4">
+            <h3 className="text-gray-700 font-bold mb-2">
+              Custom Modifier (optional):
+              {modifierFieldsLocked && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="ml-2"
+                  onClick={handleUnlockModifierFields}
+                >
+                  Edit
+                </Button>
+              )}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="block text-gray-700 text-sm font-bold mb-2">
+                  Modifier Icon
+                </Label>
+                <Input
+                  id="formableModifierIcon"
+                  type="text"
+                  value={formableModifierIcon}
+                  onChange={(e) => setFormableModifierIcon(e.target.value)}
+                  placeholder="e.g. GFX_example_icon"
+                  disabled={modifierFieldsLocked}
+                />
+              </div>
+              <div>
+                <Label className="block text-gray-700 text-sm font-bold mb-2">
+                  Modifier Name
+                </Label>
+                <Input
+                  id="formableModifier"
+                  type="text"
+                  value={formableModifier}
+                  onChange={(e) => setFormableModifier(e.target.value)}
+                  placeholder="e.g. Example Modifier Name"
+                  disabled={modifierFieldsLocked}
+                />
+              </div>
+              <div>
+                <Label className="block text-gray-700 text-sm font-bold mb-2">
+                  Modifier Description
+                </Label>
+                <Input
+                  id="formableModifierDescription"
+                  type="text"
+                  value={formableModifierDescription}
+                  onChange={(e) =>
+                    setFormableModifierDescription(e.target.value)
+                  }
+                  placeholder="e.g. This is a custom modifier description."
+                  disabled={modifierFieldsLocked}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mb-4">
           <Button

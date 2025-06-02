@@ -19,6 +19,10 @@ export interface TemplateData {
   alertButton: string;
   suggestedBy: string | string[];
   formType: "regular" | "releasable";
+  customModifiers?: string | string[]; // New: custom modifiers field
+  formableModifierIcon?: string;
+  formableModifier?: string;
+  formableModifierDescription?: string;
 }
 
 export interface ParseResult {

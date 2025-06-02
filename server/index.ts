@@ -3,7 +3,6 @@ import { registerRoutes } from "./routes";
 import discordUserRouter from "./discordUser";
 import { fileURLToPath } from "url";
 import path from "path";
-import consola from "consola";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,16 +34,16 @@ app.use((req, res, next) => {
         logLine = logLine.slice(0, 79) + "…";
       }
 
-      consola.log(logLine);
+      console.log(logLine);
     }
   });
 
   next();
 });
 
-consola.info("[server] Registering /api routes");
+console.info("[server] Registering /api routes");
 app.use("/api", discordUserRouter);
-consola.info("[server] /api routes registered");
+console.info("[server] /api routes registered");
 
 app.get("/api/test", (req, res) => {
   res.json({ ok: true });
@@ -52,7 +51,7 @@ app.get("/api/test", (req, res) => {
 
 const port = Number(process.env.PORT) || 5000;
 const server = app.listen(port, "0.0.0.0", () => {
-  consola.info(`Server running on port ${port}`);
+  console.info(`Server running on port ${port}`);
 
   // Only require and use Vite dev server in development, using require so esbuild can tree-shake it
   if (process.env.NODE_ENV === "development") {
@@ -60,7 +59,7 @@ const server = app.listen(port, "0.0.0.0", () => {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       require("./viteDevServer").setupVite(app, server);
     } catch (e) {
-      consola.warn(
+      console.warn(
         "Vite dev server not started: viteDevServer.js not found or not needed in production."
       );
     }

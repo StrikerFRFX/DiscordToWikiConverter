@@ -1,5 +1,3 @@
-import consola from "consola";
-
 /**
  * A set of template phrases for generating natural-sounding taglines
  * These are variations that can be randomly selected to create diverse descriptions
@@ -122,7 +120,7 @@ function getRandomPhrase(phrases: string[]): string {
 export function generateLocationPhrase(): string {
   const phrase =
     openingPhrases[Math.floor(Math.random() * openingPhrases.length)];
-  consola.info({ message: "generateLocationPhrase", phrase });
+  console.log({ message: "generateLocationPhrase", phrase });
   return phrase;
 }
 
@@ -132,7 +130,7 @@ export function generateLocationPhrase(): string {
 export function generateRequirementPhrase(): string {
   const phrase =
     requirementPhrases[Math.floor(Math.random() * requirementPhrases.length)];
-  consola.info({ message: "generateRequirementPhrase", phrase });
+  console.log({ message: "generateRequirementPhrase", phrase });
   return phrase;
 }
 
@@ -148,7 +146,7 @@ export function generateConnectionPhrase(): string {
  */
 export function generateTilePhrase(): string {
   const phrase = tilePhrases[Math.floor(Math.random() * tilePhrases.length)];
-  consola.info({ message: "generateTilePhrase", phrase });
+  console.log({ message: "generateTilePhrase", phrase });
   return phrase;
 }
 
@@ -160,7 +158,7 @@ export function generateMissionOpeningPhrase(): string {
     missionOpeningPhrases[
       Math.floor(Math.random() * missionOpeningPhrases.length)
     ];
-  consola.info({ message: "generateMissionOpeningPhrase", phrase });
+  console.log({ message: "generateMissionOpeningPhrase", phrase });
   return phrase;
 }
 
@@ -172,7 +170,7 @@ export function generateMissionRequirementPhrase(): string {
     missionRequirementPhrases[
       Math.floor(Math.random() * missionRequirementPhrases.length)
     ];
-  consola.info({ message: "generateMissionRequirementPhrase", phrase });
+  console.log({ message: "generateMissionRequirementPhrase", phrase });
   return phrase;
 }
 
@@ -184,6 +182,6 @@ export function generateMissionActionPhrase(): string {
     missionActionPhrases[
       Math.floor(Math.random() * missionActionPhrases.length)
     ];
-  consola.info({ message: "generateMissionActionPhrase", phrase });
+  console.log({ message: "generateMissionActionPhrase", phrase });
   return phrase;
 }

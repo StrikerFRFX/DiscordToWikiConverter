@@ -9,13 +9,12 @@ import {
   generateMissionActionPhrase,
 } from "./taglineGenerator";
 import { detectContinent } from "./continentMapper";
-import consola from "consola";
 
 /**
  * Format country list with <br> tags
  */
 function formatCountryList(countries: string): string {
-  consola.info({ message: "formatCountryList called", countries });
+  console.log({ message: "formatCountryList called", countries });
   if (!countries) return "";
 
   const countryArray = countries
@@ -31,7 +30,7 @@ function formatCountryList(countries: string): string {
       }`;
     })
     .join("\n");
-  consola.info({ message: "formatCountryList result", result });
+  console.log({ message: "formatCountryList result", result });
   return result;
 }
 
@@ -45,7 +44,7 @@ function formatRequiredTiles(
   formattedTiles: string;
   tilesForTagline: { country: string; cityText: string } | null;
 } {
-  consola.info({ message: "formatRequiredTiles called", tiles, templateType });
+  console.log({ message: "formatRequiredTiles called", tiles, templateType });
   if (!tiles) return { formattedTiles: "", tilesForTagline: null };
 
   const tileArray = tiles
@@ -100,7 +99,7 @@ function formatRequiredTiles(
         }
       : null,
   };
-  consola.info({ message: "formatRequiredTiles result", result });
+  console.log({ message: "formatRequiredTiles result", result });
   return result;
 }
 
@@ -112,7 +111,7 @@ async function generateTagline(
   templateType: "formable" | "mission",
   tilesInfo: { country: string; cityText: string } | null
 ): Promise<string> {
-  consola.info({
+  console.log({
     message: "generateTagline called",
     templateData,
     templateType,
@@ -257,7 +256,7 @@ async function generateTagline(
         : `for {{Flag|Name=${startNationFormatted}}}`
     }. It is ${locationPhrase} ${continentText} and ${requirementPhrase} ${requiredCountriesText}${tilesText}.`;
   }
-  consola.info({ message: "generateTagline result", tagline });
+  console.log({ message: "generateTagline result", tagline });
   return tagline;
 }
 
@@ -290,7 +289,7 @@ export async function generateWikiTemplate(
   templateData: TemplateData,
   templateType: "formable" | "mission"
 ): Promise<string> {
-  consola.info({
+  console.log({
     message: "generateWikiTemplate called",
     templateData,
     templateType,
@@ -379,6 +378,10 @@ export async function generateWikiTemplate(
 
   // Add demonym if present, after continent
   if (templateData.demonym && templateData.demonym.trim() !== "") {
+    console.log({
+      message: "Adding demonym to templateFields",
+      demonym: templateData.demonym,
+    });
     templateFields["demonym"] = templateData.demonym;
   }
 
@@ -410,11 +413,11 @@ export async function generateWikiTemplate(
     "start_nation",
     "required",
     "continent",
+    "demonym",
     "stab_gain",
     "city_count",
     "square_count",
     "population",
-    "demonym",
     "manpower",
     "decision_name",
     "decision_description",
@@ -432,6 +435,19 @@ export async function generateWikiTemplate(
     }
   });
 
+  // Add custom modifier fields for formables (in correct wiki style/position)
+  if (templateType === "formable") {
+    if (templateData.formableModifierIcon) {
+      template += `| formable_modifier_icon = ${templateData.formableModifierIcon}\n`;
+    }
+    if (templateData.formableModifier) {
+      template += `| formable_modifier = ${templateData.formableModifier}\n`;
+    }
+    if (templateData.formableModifierDescription) {
+      template += `| formable_modifier_description = ${templateData.formableModifierDescription}\n`;
+    }
+  }
+
   // Close the template
   template += `}}\n{{Description|Country forming description=${templateData.alertDescription}}}\n\n`;
 
@@ -447,7 +463,7 @@ export async function generateWikiTemplate(
   );
   template += tagline;
 
-  consola.info({ message: "generateWikiTemplate result", template });
+  console.log({ message: "generateWikiTemplate result", template });
   return template;
 }
 

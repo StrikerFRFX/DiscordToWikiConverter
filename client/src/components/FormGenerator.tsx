@@ -9,10 +9,6 @@ import {
   copyTaglineToClipboard,
 } from "../lib/templateGenerator";
 import { useToast } from "../hooks/use-toast";
-import consola from "consola";
-if (typeof window !== "undefined") {
-  consola.wrapConsole();
-}
 
 const FormGenerator: React.FC = () => {
   const [activeTemplate, setActiveTemplate] = useState<"formable" | "mission">(
@@ -41,7 +37,7 @@ const FormGenerator: React.FC = () => {
   };
 
   const handleParseDiscord = (content: string) => {
-    consola.info({
+    console.log({
       message: "User input received",
       input: content,
       templateType: activeTemplate,
@@ -52,7 +48,7 @@ const FormGenerator: React.FC = () => {
           success: false,
           message: "Please enter Discord message content.",
         });
-        consola.warn("Empty input provided to parser");
+        console.warn("Empty input provided to parser");
         toast({
           title: "Empty input",
           description: "Please enter Discord message content to parse.",
@@ -62,60 +58,46 @@ const FormGenerator: React.FC = () => {
       }
 
       const parseResultRaw = parseDiscordMessage(content, activeTemplate);
-      consola.success({
+      console.log({
         message: "Parsed Discord message",
         parseResult: parseResultRaw,
       });
 
-      // Normalize suggestedBy to string | null for ParseResult type
+      // Instead of normalizing suggestedBy to a string, preserve the array or string as returned by the parser
       let normalizedParseResult = parseResultRaw;
-      if (
-        parseResultRaw &&
-        "metadata" in parseResultRaw &&
-        parseResultRaw.metadata
-      ) {
-        const { suggestedBy, ...restMetadata } = parseResultRaw.metadata;
-        normalizedParseResult = {
-          ...parseResultRaw,
-          metadata: {
-            ...restMetadata,
-            suggestedBy: Array.isArray(suggestedBy)
-              ? suggestedBy.join(", ")
-              : typeof suggestedBy === "string"
-              ? suggestedBy
-              : null,
-          },
-        };
-      }
-      // Ensure suggestedBy is string | null before setting state
+      // No normalization: just use what the parser returns
       setParseResult(normalizedParseResult as ParseResult);
       // Update contributors state from normalizedParseResult.metadata.suggestedBy
+      let parsedContributors: string[] = [""];
       if (
         normalizedParseResult &&
         "metadata" in normalizedParseResult &&
-        normalizedParseResult.metadata &&
-        typeof normalizedParseResult.metadata.suggestedBy === "string"
+        normalizedParseResult.metadata
       ) {
-        setContributors(
-          normalizedParseResult.metadata.suggestedBy
-            ? normalizedParseResult.metadata.suggestedBy
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean)
-            : [""]
-        );
+        const sb = normalizedParseResult.metadata.suggestedBy;
+        if (Array.isArray(sb)) {
+          setContributors(sb);
+          parsedContributors = sb;
+        } else if (typeof sb === "string" && sb) {
+          setContributors([sb]);
+          parsedContributors = [sb];
+        } else {
+          setContributors([""]);
+          parsedContributors = [""];
+        }
       }
+      // Use the freshly parsed normalizedParseResult for validation and templateData update
       if (
-        parseResult &&
-        parseResult.success &&
-        "extractedData" in parseResult
+        normalizedParseResult &&
+        normalizedParseResult.success &&
+        "extractedData" in normalizedParseResult
       ) {
-        // Always inject current formType, continent, and contributors from state
+        // Always inject current formType, continent, and contributors from just-parsed contributors
         const data = {
-          ...parseResult.extractedData,
+          ...normalizedParseResult.extractedData,
           formType,
           continent,
-          suggestedBy: contributors,
+          suggestedBy: parsedContributors,
         };
         // Ensure required string fields are not undefined
         if (data.name === undefined) data.name = "";
@@ -135,7 +117,7 @@ const FormGenerator: React.FC = () => {
           } as TemplateData,
           activeTemplate
         ).then((generated) => {
-          consola.info({
+          console.log({
             message: "Generated wiki template",
             generatedCode: generated,
             templateData: data,
@@ -156,7 +138,7 @@ const FormGenerator: React.FC = () => {
           success: false,
           message: "Failed to extract data from Discord message.",
         });
-        consola.error({
+        console.error({
           message: "Failed to extract data from Discord message",
           parseResult,
         });
@@ -167,7 +149,7 @@ const FormGenerator: React.FC = () => {
         });
       }
     } catch (error) {
-      consola.error({
+      console.error({
         message: "Parsing error",
         error,
       });
