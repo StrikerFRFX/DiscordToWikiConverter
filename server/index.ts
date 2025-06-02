@@ -42,7 +42,13 @@ app.use((req, res, next) => {
   next();
 });
 
+consola.info("[server] Registering /api routes");
 app.use("/api", discordUserRouter);
+consola.info("[server] /api routes registered");
+
+app.get("/api/test", (req, res) => {
+  res.json({ ok: true });
+});
 
 const port = Number(process.env.PORT) || 5000;
 const server = app.listen(port, "0.0.0.0", () => {
@@ -62,10 +68,11 @@ const server = app.listen(port, "0.0.0.0", () => {
 });
 
 if (app.get("env") !== "development") {
-  // Serve static files in production from dist/client
-  app.use(express.static(path.join(__dirname, "client")));
+  // Serve static files in production from dist/public
+  const staticPath = path.join(__dirname, "../dist/public");
+  app.use(express.static(staticPath));
   app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "client/index.html"));
+    res.sendFile(path.join(staticPath, "index.html"));
   });
 }
 

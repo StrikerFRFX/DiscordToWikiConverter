@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
+import consola from "consola";
 
 dotenv.config();
 
@@ -8,40 +9,32 @@ const router = express.Router();
 
 // GET /api/discord/user/:id
 router.get("/discord/user/:id", async (req: Request, res: Response) => {
-  console.log(
-    "[discordUser] Request received",
-    req.method,
-    req.originalUrl,
-    req.params
-  );
-  const { id } = req.params;
-  if (!id) {
-    console.log("[discordUser] No user ID provided");
-    return res.status(400).json({ message: "User ID required" });
-  }
-
+  consola.info("[discordUser] --- ROUTE ENTERED ---");
   try {
     const token = process.env.DISCORD_BOT_TOKEN;
-    console.log(
-      "[discordUser] Using token:",
-      token ? "[REDACTED]" : "[MISSING]"
+    consola.info(
+      "[discordUser] Token present:",
+      !!token,
+      "Token value:",
+      token ? token.slice(0, 10) + "..." : "<none>"
     );
-    if (!token) {
-      console.log("[discordUser] Discord bot token not set");
-      return res.status(500).json({ message: "Discord bot token not set" });
+    const { id } = req.params;
+    if (!id) {
+      consola.log("[discordUser] No user ID provided");
+      return res.status(400).json({ message: "User ID required" });
     }
 
     const url = `https://discord.com/api/v10/users/${id}`;
-    console.log("[discordUser] Fetching from Discord API:", url);
+    consola.log("[discordUser] Fetching from Discord API:", url);
     const discordRes = await fetch(url, {
       headers: { Authorization: `Bot ${token}` },
     });
-    console.log(
+    consola.log(
       "[discordUser] Discord API response status:",
       discordRes.status
     );
     const text = await discordRes.text();
-    console.log("[discordUser] Discord API response text:", text);
+    consola.log("[discordUser] Discord API response text:", text);
     if (!discordRes.ok) {
       return res.status(discordRes.status).json({ message: text });
     }
@@ -49,18 +42,26 @@ router.get("/discord/user/:id", async (req: Request, res: Response) => {
     try {
       user = JSON.parse(text);
     } catch (e) {
-      console.log("[discordUser] Failed to parse JSON:", e);
-      return res
-        .status(500)
-        .json({ message: "Failed to parse Discord API response" });
+      consola.log(
+        "[discordUser] Failed to parse Discord API response as JSON",
+        e
+      );
+      return res.status(500).json({
+        message: "Failed to parse Discord API response as JSON",
+        raw: text,
+      });
     }
-    console.log("[discordUser] Parsed user object:", user);
-    res.json(user);
-  } catch (error) {
-    console.log("[discordUser] Error:", error);
-    res.status(500).json({
-      message: "Failed to fetch Discord user",
-      error: error instanceof Error ? error.message : error,
+    return res.json(user);
+  } catch (err: any) {
+    consola.error(
+      "[discordUser] TOP-LEVEL ERROR:",
+      err,
+      err && (err as Error).stack
+    );
+    return res.status(500).json({
+      message: "Internal server error",
+      error: String(err),
+      stack: err && (err as Error).stack,
     });
   }
 });

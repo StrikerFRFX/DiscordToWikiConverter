@@ -1,4 +1,4 @@
-import { TemplateData } from "@/types";
+import { TemplateData } from "../types";
 import { singularOrPlural } from "./utils";
 import {
   generateLocationPhrase,

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import InputPanel from "./InputPanel";
 import OutputPanel from "./OutputPanel";
-import { TemplateData, ParseResult } from "@/types";
-import { parseDiscordMessage } from "@/lib/parser";
+import { TemplateData, ParseResult } from "../types";
+import { parseDiscordMessage } from "../lib/parser";
 import {
   generateWikiTemplate,
   generateTagline,
   copyTaglineToClipboard,
-} from "@/lib/templateGenerator";
-import { useToast } from "@/hooks/use-toast";
+} from "../lib/templateGenerator";
+import { useToast } from "../hooks/use-toast";
 import consola from "consola";
 if (typeof window !== "undefined") {
   consola.wrapConsole();
@@ -28,6 +28,7 @@ const FormGenerator: React.FC = () => {
   const [formType, setFormType] = useState<"regular" | "releasable">("regular");
   const [continent, setContinent] = useState<string>("auto");
   const [tagline, setTagline] = useState<string>("");
+  const [contributors, setContributors] = useState<string[]>([""]);
   const { toast } = useToast();
 
   const handleTemplateTypeChange = (type: "formable" | "mission") => {
@@ -60,32 +61,80 @@ const FormGenerator: React.FC = () => {
         return;
       }
 
-      const parseResult = parseDiscordMessage(content, activeTemplate);
+      const parseResultRaw = parseDiscordMessage(content, activeTemplate);
       consola.success({
         message: "Parsed Discord message",
-        parseResult,
+        parseResult: parseResultRaw,
       });
-      setParseResult(parseResult);
 
+      // Normalize suggestedBy to string | null for ParseResult type
+      let normalizedParseResult = parseResultRaw;
+      if (
+        parseResultRaw &&
+        "metadata" in parseResultRaw &&
+        parseResultRaw.metadata
+      ) {
+        const { suggestedBy, ...restMetadata } = parseResultRaw.metadata;
+        normalizedParseResult = {
+          ...parseResultRaw,
+          metadata: {
+            ...restMetadata,
+            suggestedBy: Array.isArray(suggestedBy)
+              ? suggestedBy.join(", ")
+              : typeof suggestedBy === "string"
+              ? suggestedBy
+              : null,
+          },
+        };
+      }
+      // Ensure suggestedBy is string | null before setting state
+      setParseResult(normalizedParseResult as ParseResult);
+      // Update contributors state from normalizedParseResult.metadata.suggestedBy
+      if (
+        normalizedParseResult &&
+        "metadata" in normalizedParseResult &&
+        normalizedParseResult.metadata &&
+        typeof normalizedParseResult.metadata.suggestedBy === "string"
+      ) {
+        setContributors(
+          normalizedParseResult.metadata.suggestedBy
+            ? normalizedParseResult.metadata.suggestedBy
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : [""]
+        );
+      }
       if (
         parseResult &&
         parseResult.success &&
         "extractedData" in parseResult
       ) {
-        // Always inject current formType and continent from state
+        // Always inject current formType, continent, and contributors from state
         const data = {
           ...parseResult.extractedData,
           formType,
           continent,
+          suggestedBy: contributors,
         };
-        setTemplateData(data);
+        // Ensure required string fields are not undefined
+        if (data.name === undefined) data.name = "";
+        // Add similar checks for other required string fields if needed
+        setTemplateData(data as TemplateData);
         // Show loading toast
         const loadingToast = toast({
           title: "Generating...",
           description: "Generating wiki template, please wait...",
         });
         // Generate the wiki template (async)
-        generateWikiTemplate(data, activeTemplate).then((generated) => {
+        generateWikiTemplate(
+          {
+            ...data,
+            name: data.name ?? "",
+            // Add similar fallback for other required string fields if needed
+          } as TemplateData,
+          activeTemplate
+        ).then((generated) => {
           consola.info({
             message: "Generated wiki template",
             generatedCode: generated,
@@ -100,7 +149,6 @@ const FormGenerator: React.FC = () => {
             title: "Success!",
             description: "Template generated successfully.",
           });
-          // Optionally dismiss the loading toast if your toast system supports it
           if (loadingToast && loadingToast.dismiss) loadingToast.dismiss();
         });
       } else {
@@ -146,6 +194,8 @@ const FormGenerator: React.FC = () => {
     setTemplateData(null);
     setGeneratedCode("");
     setParseStatus(null);
+    setContributors([""]);
+    setTagline("");
   };
 
   const handleDataUpdate = (updatedData: TemplateData) => {
@@ -237,6 +287,7 @@ const FormGenerator: React.FC = () => {
     };
   }, []);
 
+  // Ensure the component returns JSX
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
@@ -277,6 +328,8 @@ const FormGenerator: React.FC = () => {
           onContinentChange={handleContinentChange}
           formType={formType}
           continent={continent}
+          contributors={contributors}
+          onContributorsUpdate={setContributors}
         />
 
         <div>

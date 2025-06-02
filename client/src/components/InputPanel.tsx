@@ -1,19 +1,32 @@
 import React, { useState, useEffect } from "react";
-import { TemplateData } from "@/types";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { TemplateData } from "../types";
+import { Textarea } from "./ui/textarea";
+import { Button } from "./ui/button";
+import { Label } from "./ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { detectContinent } from "@/lib/continentMapper";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+} from "./ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { detectContinent } from "../lib/continentMapper";
+import { Input } from "./ui/input";
+import { Checkbox } from "./ui/checkbox";
+
+// Utility for Discord ID validation
+function isValidDiscordId(id: string) {
+  return /^\d{17,20}$/.test(id.trim());
+}
+
+const discordIdHelpText = `
+To get a Discord User ID:
+1. Go to User Settings > Advanced > Enable Developer Mode.
+2. Right-click the user you want the ID for.
+3. Click "Copy ID".
+4. Paste the number here. It should be 17-20 digits, only numbers.
+`;
 
 interface InputPanelProps {
   activeTemplate: "formable" | "mission";
@@ -25,6 +38,8 @@ interface InputPanelProps {
   onContinentChange: (continent: string) => void;
   formType: "regular" | "releasable";
   continent: string;
+  contributors: string[];
+  onContributorsUpdate: (contributors: string[]) => void;
 }
 
 const InputPanel: React.FC<InputPanelProps> = (props) => {
@@ -38,6 +53,8 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     onContinentChange,
     formType,
     continent,
+    contributors,
+    onContributorsUpdate,
   } = props;
   const [discordContent, setDiscordContent] = useState<string>("");
   const [detectedContinent, setDetectedContinent] = useState<string | null>(
@@ -45,7 +62,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
   );
   const [continentLoading, setContinentLoading] = useState<boolean>(false);
   const [multiContrib, setMultiContrib] = useState(false);
-  const [contributors, setContributors] = useState<string[]>([""]);
+  const [showDiscordIdHelp, setShowDiscordIdHelp] = useState(false);
 
   // Only update detectedContinent from templateData
   useEffect(() => {
@@ -73,21 +90,40 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     if (templateData) {
       if (Array.isArray(templateData.suggestedBy)) {
         setMultiContrib(true);
-        setContributors(
+        onContributorsUpdate(
           templateData.suggestedBy.length ? templateData.suggestedBy : [""]
         );
       } else if (templateData.suggestedBy) {
         setMultiContrib(false);
-        setContributors([templateData.suggestedBy]);
+        onContributorsUpdate([templateData.suggestedBy]);
       } else {
         setMultiContrib(false);
-        setContributors([""]);
+        onContributorsUpdate([""]);
       }
     } else {
       setMultiContrib(false);
-      setContributors([""]);
+      onContributorsUpdate([""]);
     }
   }, [templateData]);
+
+  // Lock fields if parsed from message, unlock on clear
+  const contributorsLocked =
+    (Array.isArray(templateData?.suggestedBy) &&
+      templateData?.suggestedBy.length > 0) ||
+    (typeof templateData?.suggestedBy === "string" &&
+      templateData?.suggestedBy);
+
+  useEffect(() => {
+    if (
+      templateData &&
+      typeof templateData.suggestedBy === "string" &&
+      templateData.suggestedBy
+    ) {
+      onContributorsUpdate([templateData.suggestedBy]);
+    } else {
+      onContributorsUpdate([""]);
+    }
+  }, [templateData?.suggestedBy]);
 
   const handleParseClick = () => {
     if (templateData) {
@@ -105,11 +141,10 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
   };
 
   const handleClearClick = () => {
-    setDiscordContent("");
     setDetectedContinent(null);
-    setContributors([""]);
     setMultiContrib(false);
     onClear();
+    onContributorsUpdate([""]);
   };
 
   const handleFormTypeChange = (value: string) => {
@@ -125,6 +160,20 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
       onContinentChange(value);
     }
   };
+
+  const handleContributorChange = (idx: number, value: string) => {
+    const updated = [...contributors];
+    updated[idx] = value;
+    onContributorsUpdate(updated);
+  };
+  const handleAddContributor = () =>
+    onContributorsUpdate([...contributors, ""]);
+  const handleRemoveContributor = (idx: number) => {
+    if (contributors.length === 1) return;
+    onContributorsUpdate(contributors.filter((_, i) => i !== idx));
+  };
+  const allIdsValid = contributors.every((id) => !id || isValidDiscordId(id));
+  const anyIdInvalid = contributors.some((id) => id && !isValidDiscordId(id));
 
   const placeholderText =
     activeTemplate === "formable"
@@ -240,67 +289,78 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
         </div>
 
         <div className="mb-4">
-          <Label
-            className="block text-gray-700 text-sm font-bold mb-2"
-            htmlFor="suggestedByInput"
-          >
+          <Label className="block text-gray-700 text-sm font-bold mb-2">
             Suggested By (Discord User ID):
           </Label>
-          <div className="flex items-center mb-2">
-            <Checkbox
-              id="multiContrib"
-              checked={multiContrib}
-              onCheckedChange={(checked) => setMultiContrib(!!checked)}
-            />
-            <Label htmlFor="multiContrib" className="ml-2 text-sm">
-              Multiple contributors
-            </Label>
-          </div>
-          {multiContrib ? (
-            <div>
-              {contributors.map((c, idx) => (
-                <div key={idx} className="flex items-center mb-1">
-                  <Input
-                    type="text"
-                    value={c}
-                    onChange={(e) => {
-                      const arr = [...contributors];
-                      arr[idx] = e.target.value;
-                      setContributors(arr);
-                    }}
-                    placeholder="Discord User ID or username"
-                    className="mr-2"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setContributors(contributors.filter((_, i) => i !== idx))
-                    }
-                    disabled={contributors.length === 1}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setContributors([...contributors, ""])}
-              >
-                Add Contributor
-              </Button>
+          {contributors.map((id, idx) => (
+            <div key={idx} className="flex items-center gap-2 mb-2">
+              <Input
+                type="text"
+                value={id}
+                onChange={(e) => handleContributorChange(idx, e.target.value)}
+                placeholder="Enter Discord User ID"
+                className={id && !isValidDiscordId(id) ? "border-red-500" : ""}
+                disabled={!!contributorsLocked}
+              />
+              {contributors.length > 1 && !contributorsLocked && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleRemoveContributor(idx)}
+                >
+                  -
+                </Button>
+              )}
+              {idx === contributors.length - 1 && !contributorsLocked && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddContributor}
+                >
+                  +
+                </Button>
+              )}
             </div>
-          ) : (
-            <Input
-              id="suggestedByInput"
-              type="text"
-              value={contributors[0]}
-              onChange={(e) => setContributors([e.target.value])}
-              placeholder="Enter Discord User ID or leave blank"
-            />
+          ))}
+          {anyIdInvalid && (
+            <div className="text-red-500 text-xs mb-2">
+              All contributors must be valid Discord IDs (17-20 digits).
+            </div>
+          )}
+          <div
+            className="text-xs text-blue-600 underline cursor-pointer"
+            onClick={() => setShowDiscordIdHelp(true)}
+          >
+            Unsure what an ID is or how to get it? Click here for help
+          </div>
+          {showDiscordIdHelp && (
+            <div className="bg-gray-100 border p-3 rounded mt-2 text-sm relative">
+              <button
+                className="absolute top-1 right-2 text-gray-500"
+                onClick={() => setShowDiscordIdHelp(false)}
+              >
+                &times;
+              </button>
+              <b>How to get a Discord User ID:</b>
+              <ol className="list-decimal pl-5 mt-2 mb-2">
+                <li>
+                  Go to <b>User Settings</b> &gt; <b>Advanced</b> &gt; Enable{" "}
+                  <b>Developer Mode</b>.
+                </li>
+                <li>Right-click the user you want the ID for.</li>
+                <li>
+                  Click <b>Copy ID</b>.
+                </li>
+                <li>
+                  Paste the number here. It should be 17-20 digits, only
+                  numbers.
+                </li>
+              </ol>
+              <div className="text-xs text-gray-500">
+                If you see a username or tag (like <code>Striker#1234</code>),
+                that's not an ID.
+              </div>
+            </div>
           )}
         </div>
 
@@ -308,6 +368,7 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
           <Button
             onClick={handleParseClick}
             className="bg-primary text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-200 mr-2 border border-primary hover:bg-primary/90 hover:text-white shadow-md"
+            disabled={anyIdInvalid}
           >
             <i className="fas fa-sync-alt mr-2"></i> Generate Wiki Template
           </Button>

@@ -1,12 +1,12 @@
 import React from "react";
-import { TemplateData } from "@/types";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { TemplateData } from "../types";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { CheckCircle, AlertCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { useDiscordUser } from "@/hooks/use-discord-user";
-import { generateWikiTemplate } from "@/lib/templateGenerator";
+import { useToast } from "../hooks/use-toast";
+import { useDiscordUsers } from "../hooks/use-discord-users";
+import { generateWikiTemplate } from "../lib/templateGenerator";
 
 interface OutputPanelProps {
   generatedCode: string;
@@ -41,35 +41,82 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   };
 
   // Fix discordId logic to only use string, not array
-  const discordId =
-    templateData &&
-    typeof templateData.suggestedBy === "string" &&
-    /^\d{17,}$/.test(templateData.suggestedBy)
-      ? templateData.suggestedBy
-      : undefined;
-  const {
-    user: discordUser,
-    loading: discordUserLoading,
-    error: discordUserError,
-  } = useDiscordUser(discordId);
+  const discordIds =
+    templateData && Array.isArray(templateData.suggestedBy)
+      ? templateData.suggestedBy.filter((id) => /^\d{17,}$/.test(id))
+      : typeof templateData?.suggestedBy === "string" &&
+        /^\d{17,}$/.test(templateData.suggestedBy)
+      ? [templateData.suggestedBy]
+      : [];
 
-  // In OutputPanel, handle multiple contributors for suggestedBy
+  const {
+    users: discordUsers,
+    loading: discordUsersLoading,
+    error: discordUsersError,
+  } = useDiscordUsers(discordIds);
+
   let displayCode = generatedCode;
   if (templateData && templateData.suggestedBy) {
     if (Array.isArray(templateData.suggestedBy)) {
-      // Replace | suggested_by = ... with all contributors joined by <br>
-      const joined = templateData.suggestedBy.filter(Boolean).join("<br>");
+      // Replace | suggested_by = ... with all contributors joined by <br>\n
+      const joined = discordUsers
+        .map((user, i) =>
+          user && user.username
+            ? user.username
+            : discordIds[i] || "Unknown user"
+        )
+        .join("<br>\n");
       displayCode = generatedCode.replace(
         /(\|\s*suggested_by\s*=\s*)(.*)/,
         `$1${joined}`
       );
     } else if (/^\d{17,}$/.test(templateData.suggestedBy)) {
-      if (discordUser && discordUser.username) {
+      if (discordUsers[0] && discordUsers[0].username) {
         displayCode = generatedCode.replace(
           /(\|\s*suggested_by\s*=\s*)(\d{17,})/,
-          `$1${discordUser.username}`
+          `$1${discordUsers[0].username}`
         );
       }
+    }
+  }
+
+  // In OutputPanel, handle multiple contributors for suggestedBy
+  let contributorDisplay = null;
+  if (templateData?.suggestedBy) {
+    if (Array.isArray(templateData.suggestedBy)) {
+      if (discordUsersLoading) {
+        contributorDisplay = <span>Loading...</span>;
+      } else if (discordUsersError) {
+        contributorDisplay = (
+          <span className="text-red-500">Error: {discordUsersError}</span>
+        );
+      } else {
+        contributorDisplay = discordUsers.map((user, i) => (
+          <span key={i}>
+            {i > 0 && <span>, </span>}
+            {user && user.username
+              ? user.username
+              : discordIds[i] || "Unknown user"}
+          </span>
+        ));
+      }
+    } else if (discordIds.length === 1) {
+      if (discordUsersLoading) {
+        contributorDisplay = <span>Loading...</span>;
+      } else if (discordUsersError) {
+        contributorDisplay = (
+          <span className="text-red-500">Error: {discordUsersError}</span>
+        );
+      } else {
+        contributorDisplay =
+          discordUsers[0] && discordUsers[0].username ? (
+            <span>{discordUsers[0].username}</span>
+          ) : (
+            <span>{discordIds[0]}</span>
+          );
+      }
+    } else {
+      contributorDisplay = <span>{templateData.suggestedBy}</span>;
     }
   }
 
@@ -117,30 +164,7 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
           {templateData?.suggestedBy && (
             <div className="mb-2">
               <span className="font-semibold">Suggested by: </span>
-              {Array.isArray(templateData.suggestedBy) ? (
-                templateData.suggestedBy.filter(Boolean).map((c, i) => (
-                  <span key={i}>
-                    {i > 0 && <span>, </span>}
-                    {c}
-                  </span>
-                ))
-              ) : discordId ? (
-                discordUserLoading ? (
-                  "Loading..."
-                ) : discordUserError ? (
-                  // Error handling for Discord user lookup
-                  <span className="text-red-500">
-                    Error: {discordUserError}
-                  </span>
-                ) : discordUser && discordUser.username ? (
-                  // Display Discord username if available
-                  <span>{discordUser.username}</span>
-                ) : (
-                  <span>Unknown user</span>
-                )
-              ) : (
-                <span>{templateData.suggestedBy}</span>
-              )}
+              {contributorDisplay}
             </div>
           )}
         </div>

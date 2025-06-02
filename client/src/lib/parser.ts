@@ -1,4 +1,4 @@
-import { TemplateData, ParseResult } from "@/types";
+import { TemplateData, ParseResult } from "../types";
 import consola from "consola";
 
 /**
@@ -15,13 +15,13 @@ function extractCountryName(country: string): string {
  * Extract Discord message metadata like who suggested it, Discord IDs, etc.
  */
 function extractDiscordMetadata(content: string): {
-  suggestedBy: string | null;
+  suggestedBy: string | string[] | null;
   discordId: string | null;
   messageTimestamp: string | null;
 } {
   consola.info({ message: "extractDiscordMetadata called", content });
   const metadata: {
-    suggestedBy: string | null;
+    suggestedBy: string | string[] | null;
     discordId: string | null;
     messageTimestamp: string | null;
   } = {
@@ -30,13 +30,26 @@ function extractDiscordMetadata(content: string): {
     messageTimestamp: null,
   };
 
-  // Only match 'suggested by <@ID>' if it appears at the very top (first non-empty line)
-  const firstLine =
-    content.split(/\r?\n/).find((line) => line.trim().length > 0) || "";
-  const topSuggestedByMatch = firstLine.match(/suggested by\s+<@(\d+)>/i);
-  if (topSuggestedByMatch) {
-    metadata.suggestedBy = topSuggestedByMatch[1];
-    metadata.discordId = topSuggestedByMatch[1];
+  // Look for 'suggested by' or 'made by' <@ID> (or multiple IDs) in the first 5 non-empty lines
+  const lines = content.split(/\r?\n/).filter((line) => line.trim().length > 0);
+  for (let i = 0; i < Math.min(5, lines.length); i++) {
+    // Match all IDs in the line, supporting ',', 'and', or just space separation
+    // e.g. 'suggested by <@123> and <@456>', 'suggested by <@123>, <@456>', 'suggested by <@123> <@456>'
+    const match = lines[i].match(
+      /(?:suggested by|made by)[:]?\s*((?:<@\d+>[, ]*(?:and )?)+)/i
+    );
+    if (match) {
+      // Extract all IDs from the matched group
+      const ids = Array.from(match[1].matchAll(/<@(\d+)>/g)).map((m) => m[1]);
+      if (ids.length > 1) {
+        metadata.suggestedBy = ids;
+        metadata.discordId = ids[0];
+      } else if (ids.length === 1) {
+        metadata.suggestedBy = ids[0];
+        metadata.discordId = ids[0];
+      }
+      break;
+    }
   }
 
   // Try to extract message timestamp
@@ -44,7 +57,6 @@ function extractDiscordMetadata(content: string): {
   if (timestampMatch) {
     metadata.messageTimestamp = timestampMatch[1];
   }
-
   consola.info({ message: "extractDiscordMetadata result", metadata });
   return metadata;
 }

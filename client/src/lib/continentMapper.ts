@@ -157,6 +157,24 @@ async function fetchContinentFromAPI(country: string): Promise<string | null> {
   }
 }
 
+// Optional: static map for common countries (add more as needed)
+const staticContinentMap: Record<string, string> = {
+  "United States": "North America",
+  Canada: "North America",
+  Mexico: "North America",
+  Brazil: "South America",
+  Argentina: "South America",
+  "United Kingdom": "Europe",
+  France: "Europe",
+  Germany: "Europe",
+  Russia: "Europe",
+  China: "Asia",
+  India: "Asia",
+  Australia: "Oceania",
+  Egypt: "Africa",
+  // ...add more as needed
+};
+
 /**
  * Attempt to detect the continent based on a list of countries (async)
  * @param countriesString Comma-separated list of countries
@@ -184,16 +202,27 @@ export async function detectContinent(
     Oceania: 0,
   };
 
-  // Try Wikidata first, then REST Countries
-  for (const country of countriesArray) {
-    let continent = await fetchContinentFromWikidata(country);
-    if (!continent) {
-      continent = await fetchContinentFromAPI(country);
+  // Parallelize continent detection for all countries
+  const continentPromises = countriesArray.map(async (country) => {
+    // 1. Try static map
+    if (staticContinentMap[country]) {
+      return staticContinentMap[country];
     }
+    // 2. Try REST Countries API first (faster)
+    let continent = await fetchContinentFromAPI(country);
+    // 3. Fallback to Wikidata if REST fails
+    if (!continent) {
+      continent = await fetchContinentFromWikidata(country);
+    }
+    return continent;
+  });
+
+  const continents = await Promise.all(continentPromises);
+  continents.forEach((continent) => {
     if (continent && continentCounts[continent] !== undefined) {
       continentCounts[continent]++;
     }
-  }
+  });
 
   consola.info({ message: "Continent counts", continentCounts });
 
