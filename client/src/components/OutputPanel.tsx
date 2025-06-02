@@ -7,12 +7,30 @@ import { CheckCircle, AlertCircle } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { useDiscordUsers } from "../hooks/use-discord-users";
 import { generateWikiTemplate } from "../lib/templateGenerator";
+import { Input } from "./ui/input";
 
 interface OutputPanelProps {
   generatedCode: string;
   parseStatus: { success: boolean; message: string } | null;
   templateData: TemplateData | null;
   activeTemplate: "formable" | "mission";
+  modifierFieldsLocked: boolean;
+  formableModifierIcon: string;
+  formableModifier: string;
+  formableModifierDescription: string;
+  missionModifierIcon: string;
+  missionModifier: string;
+  missionModifierDescription: string;
+  onModifierEdit: (
+    fields: Partial<{
+      formableModifierIcon: string;
+      formableModifier: string;
+      formableModifierDescription: string;
+      missionModifierIcon: string;
+      missionModifier: string;
+      missionModifierDescription: string;
+    }>
+  ) => void;
 }
 
 const OutputPanel: React.FC<OutputPanelProps> = ({
@@ -20,6 +38,14 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
   parseStatus,
   templateData,
   activeTemplate,
+  modifierFieldsLocked,
+  formableModifierIcon,
+  formableModifier,
+  formableModifierDescription,
+  missionModifierIcon,
+  missionModifier,
+  missionModifierDescription,
+  onModifierEdit,
 }) => {
   const { toast } = useToast();
 
@@ -134,7 +160,10 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     string | null
   >(null);
   const [iconError, setIconError] = useState<string | null>(null);
+  const [iconFetchAttempts, setIconFetchAttempts] = useState(0);
+
   React.useEffect(() => {
+    let isMounted = true;
     if (
       templateData &&
       typeof templateData.formableModifierIcon === "string" &&
@@ -142,47 +171,101 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
     ) {
       const iconId = templateData.formableModifierIcon;
       setIconError(null);
-      // Fetch the thumbnail JSON from Roblox API
-      fetch(
-        `https://thumbnails.roblox.com/v1/assets?assetIds=${iconId}&size=420x420&format=Png&isCircular=false`
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("Roblox thumbnail API data for iconId", iconId, data);
-          if (data && data.data && data.data[0] && data.data[0].imageUrl) {
-            // Check for known placeholder or error images
-            if (
-              data.data[0].imageUrl.includes("noFilter") ||
-              data.data[0].imageUrl.includes("nothumbnail")
-            ) {
-              setFormableModifierIconUrl(null);
-              setIconError(
-                "No valid Roblox asset thumbnail found for this ID."
+      setFormableModifierIconUrl(null);
+      let attempts = 0;
+      const maxAttempts = 2;
+
+      const fetchThumbnail = () => {
+        fetch(`/api/roblox-thumbnail?assetId=${iconId}`)
+          .then(async (res) => {
+            if (!res.ok) {
+              // Backend unreachable or error
+              if (res.status >= 500) {
+                throw new Error(
+                  "Backend server is unreachable (" + res.status + ")"
+                );
+              } else if (res.status === 404) {
+                throw new Error("Roblox asset not found (404)");
+              } else {
+                throw new Error(`Unexpected backend error (${res.status})`);
+              }
+            }
+            let data;
+            try {
+              data = await res.json();
+            } catch (e) {
+              throw new Error("Malformed response from backend (not JSON)");
+            }
+            if (data && data.data && data.data[0] && data.data[0].imageUrl) {
+              if (!isMounted) return;
+              setFormableModifierIconUrl(data.data[0].imageUrl);
+              // Show a warning if the image is a placeholder, but still display it
+              if (
+                data.data[0].imageUrl.includes("noFilter") ||
+                data.data[0].imageUrl.includes("nothumbnail")
+              ) {
+                setIconError(
+                  "This asset is private, deleted, or not a decal/image. Showing Roblox placeholder."
+                );
+              } else {
+                setIconError(null);
+              }
+            } else if (data && data.errors && data.errors.length > 0) {
+              throw new Error(
+                `Roblox API error: ${data.errors
+                  .map((e: any) => e.message)
+                  .join(", ")}`
               );
             } else {
-              setFormableModifierIconUrl(data.data[0].imageUrl);
-              setIconError(null);
+              throw new Error(
+                "No valid Roblox asset thumbnail found for this ID."
+              );
             }
-          } else {
-            setFormableModifierIconUrl(null);
-            setIconError("No valid Roblox asset thumbnail found for this ID.");
-          }
-        })
-        .catch((e) => {
-          setFormableModifierIconUrl(null);
-          setIconError("Error fetching Roblox asset thumbnail.");
-          console.error("Error fetching Roblox asset thumbnail:", e);
-        });
+          })
+          .catch((e) => {
+            if (!isMounted) return;
+            attempts++;
+            // Retry on network errors only
+            if (
+              (e instanceof TypeError ||
+                (e.message &&
+                  (e.message.includes("Failed to fetch") ||
+                    e.message.includes("NetworkError")))) &&
+              attempts <= maxAttempts
+            ) {
+              setTimeout(fetchThumbnail, 500 * attempts); // Exponential backoff
+              setIconError(
+                `Network error occurred (attempt ${attempts} of ${
+                  maxAttempts + 1
+                }). Retrying...`
+              );
+              setIconFetchAttempts(attempts);
+            } else {
+              setFormableModifierIconUrl(null);
+              setIconError(
+                e.message || "Unknown error fetching Roblox asset thumbnail."
+              );
+            }
+          });
+      };
+      fetchThumbnail();
+      return () => {
+        isMounted = false;
+      };
     } else {
       setFormableModifierIconUrl(null);
       setIconError(null);
+      setIconFetchAttempts(0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateData?.formableModifierIcon]);
 
   return (
     <Card className="bg-white rounded-lg shadow-md">
-      <CardHeader className="bg-primary-light text-white rounded-t-lg flex flex-row justify-between items-center">
-        <CardTitle>Output - Wiki Template</CardTitle>
+      <CardHeader className="bg-white rounded-t-lg">
+        <CardTitle className="text-2xl font-bold text-primary-dark">
+          Output - Wiki Template
+        </CardTitle>
         {generatedCode && (
           <Button
             variant="ghost"
@@ -238,11 +321,52 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
               <div className="font-bold text-purple-800 mb-1">
                 Custom Modifier
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                {templateData.formableModifierIcon && (
+              {!modifierFieldsLocked ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <div>
                     <span className="font-semibold">Icon:</span>{" "}
-                    {formableModifierIconUrl ? (
+                    <Input
+                      id="formableModifierIconOut"
+                      type="text"
+                      value={formableModifierIcon}
+                      onChange={(e) =>
+                        onModifierEdit({ formableModifierIcon: e.target.value })
+                      }
+                      placeholder="e.g. GFX_example_icon"
+                    />
+                  </div>
+                  <div>
+                    <span className="font-semibold">Name:</span>{" "}
+                    <Input
+                      id="formableModifierOut"
+                      type="text"
+                      value={formableModifier}
+                      onChange={(e) =>
+                        onModifierEdit({ formableModifier: e.target.value })
+                      }
+                      placeholder="e.g. Example Modifier Name"
+                    />
+                  </div>
+                  <div>
+                    <span className="font-semibold">Description:</span>{" "}
+                    <Input
+                      id="formableModifierDescriptionOut"
+                      type="text"
+                      value={formableModifierDescription}
+                      onChange={(e) =>
+                        onModifierEdit({
+                          formableModifierDescription: e.target.value,
+                        })
+                      }
+                      placeholder="e.g. This is a custom modifier description."
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {formableModifierIconUrl && (
+                    <div>
+                      <span className="font-semibold">Icon:</span>{" "}
                       <span className="inline-flex flex-col items-center">
                         <img
                           src={formableModifierIconUrl}
@@ -259,29 +383,112 @@ const OutputPanel: React.FC<OutputPanelProps> = ({
                         <span className="text-xs text-gray-500 mt-1">
                           {templateData.formableModifierIcon}
                         </span>
+                        {iconError && (
+                          <span className="text-xs text-yellow-600 mt-1">
+                            {iconError}
+                          </span>
+                        )}
                       </span>
-                    ) : iconError ? (
+                    </div>
+                  )}
+                  {!formableModifierIconUrl && iconError && (
+                    <div>
+                      <span className="font-semibold">Icon:</span>{" "}
                       <span className="text-xs text-red-500 ml-2">
                         {iconError}
                       </span>
-                    ) : (
-                      <span>{templateData.formableModifierIcon}</span>
-                    )}
+                    </div>
+                  )}
+                  {templateData.formableModifier && (
+                    <div>
+                      <span className="font-semibold">Name:</span>{" "}
+                      {formableModifier}
+                    </div>
+                  )}
+                  {templateData.formableModifierDescription && (
+                    <div>
+                      <span className="font-semibold">Description:</span>{" "}
+                      {formableModifierDescription}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+        {/* Custom Modifier Display for Missions */}
+        {activeTemplate === "mission" &&
+          templateData &&
+          (templateData.missionModifierIcon ||
+            templateData.missionModifier ||
+            templateData.missionModifierDescription) && (
+            <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded">
+              <div className="font-bold text-purple-800 mb-1">
+                Custom Modifier
+              </div>
+              {!modifierFieldsLocked ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div>
+                    <span className="font-semibold">Icon:</span>{" "}
+                    <Input
+                      id="missionModifierIconOut"
+                      type="text"
+                      value={missionModifierIcon}
+                      onChange={(e) =>
+                        onModifierEdit({ missionModifierIcon: e.target.value })
+                      }
+                      placeholder="e.g. GFX_example_icon"
+                    />
                   </div>
-                )}
-                {templateData.formableModifier && (
                   <div>
                     <span className="font-semibold">Name:</span>{" "}
-                    {templateData.formableModifier}
+                    <Input
+                      id="missionModifierOut"
+                      type="text"
+                      value={missionModifier}
+                      onChange={(e) =>
+                        onModifierEdit({ missionModifier: e.target.value })
+                      }
+                      placeholder="e.g. Example Modifier Name"
+                    />
                   </div>
-                )}
-                {templateData.formableModifierDescription && (
                   <div>
                     <span className="font-semibold">Description:</span>{" "}
-                    {templateData.formableModifierDescription}
+                    <Input
+                      id="missionModifierDescriptionOut"
+                      type="text"
+                      value={missionModifierDescription}
+                      onChange={(e) =>
+                        onModifierEdit({
+                          missionModifierDescription: e.target.value,
+                        })
+                      }
+                      placeholder="e.g. This is a custom modifier description."
+                    />
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  {templateData.missionModifierIcon && (
+                    <div>
+                      <span className="font-semibold">Icon:</span>{" "}
+                      <span>{missionModifierIcon}</span>
+                    </div>
+                  )}
+                  {templateData.missionModifier && (
+                    <div>
+                      <span className="font-semibold">Name:</span>{" "}
+                      {missionModifier}
+                    </div>
+                  )}
+                  {templateData.missionModifierDescription && (
+                    <div>
+                      <span className="font-semibold">Description:</span>{" "}
+                      {missionModifierDescription}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

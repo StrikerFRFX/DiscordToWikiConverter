@@ -36,32 +36,35 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ trigger }) => {
           </DialogDescription>
         </DialogHeader>
         <div className="p-2">
-          <h3 className="text-lg font-bold mb-2">How to Use This Tool</h3>
+          <h3 className="text-lg font-bold mb-2">Quickstart</h3>
           <ol className="list-decimal pl-5 mb-4 space-y-2">
             <li>
-              Choose a template type: <b>Formable</b> or <b>Mission</b>.
+              Select <b>Formable</b> or <b>Mission</b> at the top.
             </li>
             <li>
-              Paste the Discord-formatted data into the input field.
+              Paste your Discord-formatted data into the input box on the left.
               <br />
               <span className="text-xs text-gray-500">
-                (Use the format shown in the placeholder for best results.)
+                (Use the format from the Discord bot for best results.)
               </span>
             </li>
-            <li>Review and adjust any detected fields or options as needed.</li>
+            <li>
+              Review and adjust any detected fields or options as needed,
+              including custom modifier fields.
+            </li>
             <li>
               Click <b>Generate Wiki Template</b> to create your wiki code.
             </li>
             <li>
-              Copy the generated template or tagline to your clipboard and paste
-              it into the wiki.
+              Copy the generated template or tagline and paste it into the wiki.
             </li>
           </ol>
-          <h3 className="text-lg font-bold mb-2">Supported Discord Format</h3>
+
+          <h3 className="text-lg font-bold mb-2">Supported Input Fields</h3>
           <p className="mb-4">
             Paste your mission or formable in the same structure as the Discord
-            bot output. The parser is robust, but all required fields should be
-            present:
+            bot output. All required fields should be present. Optional fields
+            (like custom modifiers) are supported and editable.
           </p>
           <ul className="list-disc pl-5 mb-4 space-y-1">
             <li>
@@ -101,40 +104,47 @@ const HelpPanel: React.FC<HelpPanelProps> = ({ trigger }) => {
               <code className="bg-gray-100 px-1">StabilityGain</code> —
               Stability gained (missions only)
             </li>
-          </ul>
-          <h3 className="text-lg font-bold mb-2">Tips & Troubleshooting</h3>
-          <ul className="list-disc pl-5 mb-4 space-y-1">
-            <li>Check your input for missing or mismatched brackets/quotes.</li>
-            <li>All required fields must be present and properly formatted.</li>
             <li>
-              If you see parsing errors, try simplifying your input or removing
+              <code className="bg-gray-100 px-1">formableModifierIcon</code>,{" "}
+              <code className="bg-gray-100 px-1">formableModifier</code>,{" "}
+              <code className="bg-gray-100 px-1">
+                formableModifierDescription
+              </code>{" "}
+              — Custom modifier fields (formables, optional)
+            </li>
+            <li>
+              <code className="bg-gray-100 px-1">missionModifierIcon</code>,{" "}
+              <code className="bg-gray-100 px-1">missionModifier</code>,{" "}
+              <code className="bg-gray-100 px-1">
+                missionModifierDescription
+              </code>{" "}
+              — Custom modifier fields (missions, optional)
+            </li>
+          </ul>
+
+          <h3 className="text-lg font-bold mb-2">Troubleshooting & FAQ</h3>
+          <ul className="list-disc pl-5 mb-4 space-y-1">
+            <li>
+              <b>Parsing errors?</b> Check for missing or mismatched brackets,
+              quotes, or required fields. Try simplifying your input or removing
               special characters.
+            </li>
+            <li>
+              <b>Fields missing?</b> Make sure your input matches the Discord
+              bot output format as closely as possible.
+            </li>
+            <li>
+              <b>Custom modifier fields not showing?</b> Ensure you use the
+              correct field names as shown above, or add/edit them in the UI
+              after generation.
+            </li>
+            <li>
+              <b>Roblox asset icon not displaying?</b> The asset may be private,
+              deleted, or not an image. A placeholder or error will be shown if
+              so.
             </li>
             <li>For best results, use the latest Discord bot output format.</li>
           </ul>
-          <div className="mt-6 text-xs text-gray-500 text-center">
-            <span>
-              Made with ❤️ by{" "}
-              <a
-                href="https://github.com/StrikerFRFX"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                StrikerFRFX
-              </a>
-              . Open source on{" "}
-              <a
-                href="https://github.com/StrikerFRFX/DiscordToWikiConverter"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                GitHub
-              </a>
-              .
-            </span>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

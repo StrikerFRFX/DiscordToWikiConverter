@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import discordUserRouter from "./discordUser";
+import robloxThumbnailRouter from "./robloxThumbnail";
 import { fileURLToPath } from "url";
 import path from "path";
 
@@ -43,6 +44,7 @@ app.use((req, res, next) => {
 
 console.info("[server] Registering /api routes");
 app.use("/api", discordUserRouter);
+app.use("/api", robloxThumbnailRouter);
 console.info("[server] /api routes registered");
 
 app.get("/api/test", (req, res) => {

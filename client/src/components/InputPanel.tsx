@@ -40,6 +40,25 @@ interface InputPanelProps {
   continent: string;
   contributors: string[];
   onContributorsUpdate: (contributors: string[]) => void;
+
+  // Add to InputPanel props:
+  formableModifierIcon: string;
+  formableModifier: string;
+  formableModifierDescription: string;
+  missionModifierIcon: string;
+  missionModifier: string;
+  missionModifierDescription: string;
+  onModifierEdit: (
+    fields: Partial<{
+      formableModifierIcon: string;
+      formableModifier: string;
+      formableModifierDescription: string;
+      missionModifierIcon: string;
+      missionModifier: string;
+      missionModifierDescription: string;
+    }>
+  ) => void;
+  modifierFieldsLocked: boolean;
 }
 
 const InputPanel: React.FC<InputPanelProps> = (props) => {
@@ -55,42 +74,26 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     continent,
     contributors,
     onContributorsUpdate,
+
+    // Destructure new props
+    formableModifierIcon,
+    formableModifier,
+    formableModifierDescription,
+    missionModifierIcon,
+    missionModifier,
+    missionModifierDescription,
+    onModifierEdit,
+    modifierFieldsLocked,
   } = props;
-  const [discordContent, setDiscordContent] = useState<string>("");
+
+  // Local state for locking modifier fields
   const [detectedContinent, setDetectedContinent] = useState<string | null>(
     null
   );
   const [continentLoading, setContinentLoading] = useState<boolean>(false);
   const [multiContrib, setMultiContrib] = useState(false);
   const [showDiscordIdHelp, setShowDiscordIdHelp] = useState(false);
-
-  // Add state for custom modifier fields
-  const [formableModifierIcon, setFormableModifierIcon] = useState<string>(
-    templateData?.formableModifierIcon || ""
-  );
-  const [formableModifier, setFormableModifier] = useState<string>(
-    templateData?.formableModifier || ""
-  );
-  const [formableModifierDescription, setFormableModifierDescription] =
-    useState<string>(templateData?.formableModifierDescription || "");
-
-  // Add lock state for custom modifier fields
-  const [modifierFieldsLocked, setModifierFieldsLocked] = useState(false);
-
-  // Lock modifier fields after parsing, unlock on clear
-  useEffect(() => {
-    if (
-      templateData &&
-      (formableModifierIcon || formableModifier || formableModifierDescription)
-    ) {
-      setModifierFieldsLocked(true);
-    } else {
-      setModifierFieldsLocked(false);
-    }
-  }, [templateData]);
-
-  // Add handler to unlock modifier fields
-  const handleUnlockModifierFields = () => setModifierFieldsLocked(false);
+  const [discordContent, setDiscordContent] = useState<string>("");
 
   // Only update detectedContinent from templateData
   useEffect(() => {
@@ -159,43 +162,6 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
     // Do not clear contributors here
   }, [templateData?.suggestedBy]);
 
-  // Sync custom modifier fields with templateData
-  useEffect(() => {
-    setFormableModifierIcon(templateData?.formableModifierIcon || "");
-    setFormableModifier(templateData?.formableModifier || "");
-    setFormableModifierDescription(
-      templateData?.formableModifierDescription || ""
-    );
-  }, [templateData]);
-
-  // Update parent when custom modifier fields change
-  useEffect(() => {
-    if (
-      templateData &&
-      (formableModifierIcon || formableModifier || formableModifierDescription)
-    ) {
-      onDataUpdate({
-        ...templateData,
-        formableModifierIcon,
-        formableModifier,
-        formableModifierDescription,
-      });
-    }
-    // eslint-disable-next-line
-  }, [formableModifierIcon, formableModifier, formableModifierDescription]);
-
-  // Lock modifier fields after parsing, unlock on clear
-  useEffect(() => {
-    if (
-      templateData &&
-      (formableModifierIcon || formableModifier || formableModifierDescription)
-    ) {
-      setModifierFieldsLocked(true);
-    } else {
-      setModifierFieldsLocked(false);
-    }
-  }, [templateData]);
-
   const handleParseClick = () => {
     if (templateData) {
       const updatedData = {
@@ -214,7 +180,6 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
   const handleClearClick = () => {
     setDetectedContinent(null);
     setMultiContrib(false);
-    setModifierFieldsLocked(false); // unlock on clear
     onClear();
     onContributorsUpdate([""]);
   };
@@ -284,10 +249,15 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
   AlertButton = "Excellent!"
 }`;
 
+  // Add handler to unlock modifier fields
+  const handleUnlockModifierFields = () => onModifierEdit({});
+
   return (
     <Card className="bg-white rounded-lg shadow-md">
-      <CardHeader className="bg-primary-light text-white rounded-t-lg">
-        <CardTitle>Input - Discord Format</CardTitle>
+      <CardHeader className="bg-white rounded-t-lg">
+        <CardTitle className="text-2xl font-bold text-primary-dark">
+          Input - Discord Format
+        </CardTitle>
       </CardHeader>
       <CardContent className="p-4">
         <div className="mb-4">
@@ -466,7 +436,9 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                   id="formableModifierIcon"
                   type="text"
                   value={formableModifierIcon}
-                  onChange={(e) => setFormableModifierIcon(e.target.value)}
+                  onChange={(e) =>
+                    onModifierEdit({ formableModifierIcon: e.target.value })
+                  }
                   placeholder="e.g. GFX_example_icon"
                   disabled={modifierFieldsLocked}
                 />
@@ -479,7 +451,9 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                   id="formableModifier"
                   type="text"
                   value={formableModifier}
-                  onChange={(e) => setFormableModifier(e.target.value)}
+                  onChange={(e) =>
+                    onModifierEdit({ formableModifier: e.target.value })
+                  }
                   placeholder="e.g. Example Modifier Name"
                   disabled={modifierFieldsLocked}
                 />
@@ -493,7 +467,78 @@ const InputPanel: React.FC<InputPanelProps> = (props) => {
                   type="text"
                   value={formableModifierDescription}
                   onChange={(e) =>
-                    setFormableModifierDescription(e.target.value)
+                    onModifierEdit({
+                      formableModifierDescription: e.target.value,
+                    })
+                  }
+                  placeholder="e.g. This is a custom modifier description."
+                  disabled={modifierFieldsLocked}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Modifier Fields for Missions */}
+        {activeTemplate === "mission" && (
+          <div className="mb-4">
+            <h3 className="text-gray-700 font-bold mb-2">
+              Custom Modifier (optional):
+              {modifierFieldsLocked && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="ml-2"
+                  onClick={handleUnlockModifierFields}
+                >
+                  Edit
+                </Button>
+              )}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label className="block text-gray-700 text-sm font-bold mb-2">
+                  Modifier Icon
+                </Label>
+                <Input
+                  id="missionModifierIcon"
+                  type="text"
+                  value={missionModifierIcon}
+                  onChange={(e) =>
+                    onModifierEdit({ missionModifierIcon: e.target.value })
+                  }
+                  placeholder="e.g. GFX_example_icon"
+                  disabled={modifierFieldsLocked}
+                />
+              </div>
+              <div>
+                <Label className="block text-gray-700 text-sm font-bold mb-2">
+                  Modifier Name
+                </Label>
+                <Input
+                  id="missionModifier"
+                  type="text"
+                  value={missionModifier}
+                  onChange={(e) =>
+                    onModifierEdit({ missionModifier: e.target.value })
+                  }
+                  placeholder="e.g. Example Modifier Name"
+                  disabled={modifierFieldsLocked}
+                />
+              </div>
+              <div>
+                <Label className="block text-gray-700 text-sm font-bold mb-2">
+                  Modifier Description
+                </Label>
+                <Input
+                  id="missionModifierDescription"
+                  type="text"
+                  value={missionModifierDescription}
+                  onChange={(e) =>
+                    onModifierEdit({
+                      missionModifierDescription: e.target.value,
+                    })
                   }
                   placeholder="e.g. This is a custom modifier description."
                   disabled={modifierFieldsLocked}

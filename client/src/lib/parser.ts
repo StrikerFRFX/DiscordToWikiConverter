@@ -580,6 +580,92 @@ export function parseDiscordMessage(
         templateData.alertDescription = customAlert.Description || "";
         templateData.alertButton = customAlert.Button || "";
       }
+
+      // --- Mission custom modifier fields ---
+      templateData.missionModifierIcon =
+        parseKeyValuePair(contentUpToDemonym, "mission_modifier_icon") || "";
+      templateData.missionModifier =
+        parseKeyValuePair(contentUpToDemonym, "mission_modifier") || "";
+      templateData.missionModifierDescription =
+        parseKeyValuePair(contentUpToDemonym, "mission_modifier_description") ||
+        "";
+      // Fallback: also try without underscores (for wiki copy-paste)
+      if (!templateData.missionModifierIcon)
+        templateData.missionModifierIcon =
+          parseKeyValuePair(contentUpToDemonym, "mission modifier icon") || "";
+      if (!templateData.missionModifier)
+        templateData.missionModifier =
+          parseKeyValuePair(contentUpToDemonym, "mission modifier") || "";
+      if (!templateData.missionModifierDescription)
+        templateData.missionModifierDescription =
+          parseKeyValuePair(
+            contentUpToDemonym,
+            "mission modifier description"
+          ) || "";
+      // Also try wiki-style keys
+      if (!templateData.missionModifierIcon)
+        templateData.missionModifierIcon =
+          parseKeyValuePair(contentUpToDemonym, "mission_modifier_icon") ||
+          parseKeyValuePair(contentUpToDemonym, "mission modifier icon") ||
+          "";
+      if (!templateData.missionModifier)
+        templateData.missionModifier =
+          parseKeyValuePair(contentUpToDemonym, "mission_modifier") ||
+          parseKeyValuePair(contentUpToDemonym, "mission modifier") ||
+          "";
+      if (!templateData.missionModifierDescription)
+        templateData.missionModifierDescription =
+          parseKeyValuePair(
+            contentUpToDemonym,
+            "mission_modifier_description"
+          ) ||
+          parseKeyValuePair(
+            contentUpToDemonym,
+            "mission modifier description"
+          ) ||
+          "";
+      // --- Robustly scan for all Modifier and AddModifiers blocks for missions ---
+      if (
+        !templateData.missionModifier ||
+        !templateData.missionModifierDescription ||
+        !templateData.missionModifierIcon
+      ) {
+        // 1. Find all Modifier blocks (anywhere)
+        const modifierBlocks = Array.from(
+          content.matchAll(/Modifier\s*[:=]?\s*{([\s\S]*?)}[\s,]*/gi)
+        ).map((m) => m[1]);
+        // 2. Find all AddModifiers blocks and extract all nested modifier objects
+        const addModsBlocks = Array.from(
+          content.matchAll(/AddModifiers\s*=\s*{([\s\S]*?)}[\s,]*/gi)
+        ).map((m) => m[1]);
+        let addModsModifierBlocks: string[] = [];
+        for (const addMods of addModsBlocks) {
+          // Find all ["..."] = { ... } blocks inside AddModifiers
+          const modObjs = Array.from(
+            addMods.matchAll(/\["[^"]+"\]\s*=\s*{([\s\S]*?)}[\s,]*/g)
+          ).map((m) => m[1]);
+          addModsModifierBlocks.push(...modObjs);
+        }
+        // Combine all found modifier blocks
+        const allModifierBlocks = [...modifierBlocks, ...addModsModifierBlocks];
+        // Try to find the first block with at least one non-empty field
+        for (const block of allModifierBlocks) {
+          const { name, desc, icon } = extractModifierFields(block);
+          if (!templateData.missionModifier && name)
+            templateData.missionModifier = name;
+          if (!templateData.missionModifierDescription && desc)
+            templateData.missionModifierDescription = desc;
+          if (!templateData.missionModifierIcon && icon)
+            templateData.missionModifierIcon = icon;
+          // If all are now filled, break
+          if (
+            templateData.missionModifier &&
+            templateData.missionModifierDescription &&
+            templateData.missionModifierIcon
+          )
+            break;
+        }
+      }
     }
 
     // Parse for releasable type

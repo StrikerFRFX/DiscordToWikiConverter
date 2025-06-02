@@ -448,6 +448,19 @@ export async function generateWikiTemplate(
     }
   }
 
+  // Add custom modifier fields for missions (in correct wiki style/position)
+  if (templateType === "mission") {
+    if (templateData.missionModifierIcon) {
+      template += `| mission_modifier_icon = ${templateData.missionModifierIcon}\n`;
+    }
+    if (templateData.missionModifier) {
+      template += `| mission_modifier = ${templateData.missionModifier}\n`;
+    }
+    if (templateData.missionModifierDescription) {
+      template += `| mission_modifier_description = ${templateData.missionModifierDescription}\n`;
+    }
+  }
+
   // Close the template
   template += `}}\n{{Description|Country forming description=${templateData.alertDescription}}}\n\n`;
 

@@ -23,6 +23,10 @@ export interface TemplateData {
   formableModifierIcon?: string;
   formableModifier?: string;
   formableModifierDescription?: string;
+  // --- Mission modifier fields ---
+  missionModifierIcon?: string;
+  missionModifier?: string;
+  missionModifierDescription?: string;
 }
 
 export interface ParseResult {
