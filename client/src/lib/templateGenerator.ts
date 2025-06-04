@@ -404,7 +404,8 @@ export async function generateWikiTemplate(
   // Build template string
   const templateName =
     templateType === "formable" ? "ConsideredFormable" : "ConsideredMission";
-  let template = `{{Considered}}{{${templateName}\n`;
+  // Prepend {{Stub}} before {{Considered}}
+  let template = `{{Stub}}{{Considered}}{{${templateName}\n`;
 
   // Add all fields to template in the correct order
   const fieldOrder = [
@@ -475,6 +476,13 @@ export async function generateWikiTemplate(
     tilesForTagline
   );
   template += tagline;
+
+  // Append the correct navbox at the end
+  if (templateType === "formable") {
+    template += `\n\n{{Navbox Formables}}`;
+  } else {
+    template += `\n\n{{Navbox Missions}}`;
+  }
 
   console.log({ message: "generateWikiTemplate result", template });
   return template;
